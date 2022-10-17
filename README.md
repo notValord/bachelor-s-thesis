@@ -1,4 +1,3 @@
-# bachelor-s-thesis
 # Efektívna redukcia konečných automatov
 #### Autor: Veronika Molnárová, xmolna08
 
