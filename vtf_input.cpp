@@ -1,15 +1,17 @@
-//
-// Created by vmvev on 10/9/2022.
-//
+/*
+* Project name: Effective reduction of Finite Automata
+* Author: Veronika Molnárová
+* Date: 18.10 2022
+* Subject: Bachelor's thesis
+*/
 
 #define INPUT_DIRECTORY "../input_automata/"
 
 #include "vtf_input.h"
 
-std::vector <std::string> parse_line(const std::string& line){
+void parse_line(const std::string& line, std::vector <std::string>& ret){
     bool skip = true;
     std::string token;
-    std::vector <std::string> split_vector;
     std::stringstream text(line);
 
     while (std::getline(text, token, ' ')){
@@ -17,9 +19,8 @@ std::vector <std::string> parse_line(const std::string& line){
             skip = false;
             continue;
         }
-        split_vector.push_back(token);
+        ret.push_back(token);
     }
-    return split_vector;
 }
 
 void parse_transition(const std::string& line, const std::shared_ptr <automata>& new_auto){
@@ -44,23 +45,26 @@ std::shared_ptr <automata> take_input(const std::string& file){
     std::ifstream input(INPUT_DIRECTORY + file);
 
     if (input.is_open()){
-        std::shared_ptr <automata> new_auto(new automata());
+        std::shared_ptr <automata> new_auto(std::make_shared <automata> ());
 
         while (std::getline(input, tmp)){
             if (tmp.find("States") != std::string::npos){
-                auto split_vector = parse_line(tmp);
+                std::vector <std::string> split_vector;
+                parse_line(tmp, split_vector);
                 for (const auto& element: split_vector){
                     new_auto->add_state(element);
                 }
             }
             else if (tmp.find("Initial") != std::string::npos){
-                auto split_vector = parse_line(tmp);
+                std::vector <std::string> split_vector;
+                parse_line(tmp, split_vector);
                 for (const auto& element: split_vector){
                     new_auto->add_init_state_force(element);
                 }
             }
             else if (tmp.find("Final") != std::string::npos){
-                auto split_vector = parse_line(tmp);
+                std::vector <std::string> split_vector;
+                parse_line(tmp, split_vector);
                 for (const auto& element: split_vector){
                     new_auto->add_accept_state_force(element);
                 }

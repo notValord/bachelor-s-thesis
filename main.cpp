@@ -92,7 +92,9 @@ void run_all(){
 //usage: ./automata {-t min_det}  [--file]
 int main(int argc, char* argv[]) {
     std::string arg_type, arg_file;
-    parse_args(argc, argv, arg_type, arg_file);
+    if (parse_args(argc, argv, arg_type, arg_file)){
+        return -1;
+    }
 
     if (arg_file.empty()){
         run_all();
