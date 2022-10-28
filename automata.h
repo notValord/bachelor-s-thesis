@@ -22,6 +22,7 @@
 #include <memory>
 #include <set>
 #include <list>
+#include <cstring>
 
 
 class auto_state;
@@ -68,6 +69,8 @@ void minimal_dfa(const std::shared_ptr <automata>&);
 std::shared_ptr <automata> det_n_min(const std::shared_ptr <automata>& nfa);
 
 
+std::shared_ptr <automata> simulate_min(const std::shared_ptr <automata>& nfa);
+
 
 /// Checks whether two given automatas have intersection in their languages
 bool language_intersect(const std::shared_ptr <automata>&, const std::shared_ptr <automata>&);
@@ -77,15 +80,13 @@ bool language_equal(const std::shared_ptr <automata>&, const std::shared_ptr <au
 
 
 //todo
-state_set find_power_closure(std::vector <power_element>&, const std::shared_ptr <auto_state>&);
-//todo
 void insert_pow_set(power_element, std::vector <power_element>&);
 //todo
 std::shared_ptr <auto_state> get_smallest_state(const state_set&);
 
 class power_element{
 private:
-    state_set same_set;
+    state_set same_set; //nemusi byt set myslim
     std::unordered_map <std::string, state_set> transition;
 
 public:
@@ -138,8 +139,7 @@ class auto_state{
         state_set get_trans_row(const std::string& symbol);
         std::unordered_map <std::string, state_set> get_trans();
 
-        void get_pow_trans(std::vector <power_element>& previous,
-                           std::unordered_map <std::string, state_set>& new_trans,
+        void get_pow_trans(std::unordered_map <std::string, state_set>& new_trans,
                            std::unordered_map <std::shared_ptr <auto_state>, state_set>& helper);
 
     // Method add_transition - takes a symbol and pointer to another state, creates a new transition
@@ -163,6 +163,9 @@ class auto_state{
         void copy_state(const std::shared_ptr <automata>& comple);
 
         void set_power_state(const std::string& new_val, std::unordered_map <std::string, state_set>& new_trans);
+
+        void get_trans_card(std::vector <int>& row, const std::string& symbol);
+        bool not_under_simulate(const std::shared_ptr <auto_state>& second);
 };
 
 // Class automata - represents a finite automata
@@ -236,9 +239,19 @@ class automata{
         void reverse_accept_states();
         std::shared_ptr <automata> complement();
 
+        void create_simulate_matrix();
+        void init_card_tables(std::unordered_map<std::string, std::vector<std::vector<int>>>&,
+                                    std::unordered_map <std::string, int>&, unsigned long);
+        //void init_omega_matrix(unsigned  long arr_size, bool (&omega_matrix)[*][*],
+        //                 std::vector <std::pair <std::shared_ptr <auto_state>, std::shared_ptr <auto_state>>>,
+        //                     std::unordered_map <std::string, int>&);
 
     // Method print - prints the automata
         void print();
+
+    void init_omega_matrix(unsigned long arr_size, std::vector<std::vector<bool>>& omega_matrix,
+                           std::vector<std::pair<std::shared_ptr<auto_state>, std::shared_ptr<auto_state>>> &gone_stack,
+                           std::unordered_map<std::basic_string<char>, int> &index_table);
 };
 
 #endif //BAKALARKA_AUTOMATA_H

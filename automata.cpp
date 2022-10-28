@@ -5,6 +5,12 @@
 * Subject: Bachelor's thesis
 */
 
+
+/*TODO pouzivat viac std::move kde sa da, pozret ako sa prekladaju veci na https://godbolt.org/
+ * TODO nahradit stringy slovnikmi, nahradit sety vectormi + mozno vlastna sprava pamata
+ * TODO peto profilovat python a proovnat
+ * */
+
 #include <iostream>
 #include "automata.h"
 
@@ -78,11 +84,11 @@ std::shared_ptr <automata> determine_nfa(const std::shared_ptr <automata>& nfa){
 }
 //TODO nieco je tu velmi zle
 void minimal_dfa(const std::shared_ptr <automata>& dnf){
-    std::vector <power_element> pow_vec_old;
+    std::vector <power_element> pow_vec_old; //TODO referencie I guess
     std::vector <power_element> pow_vec_new;
     dnf->init_power_set(pow_vec_new);
     do {
-        pow_vec_old = pow_vec_new;
+        pow_vec_old = pow_vec_new; //TODO nejak move maybe
         pow_vec_new.clear();
         //auto time = clock();
         dnf->split_power_state(pow_vec_old, pow_vec_new);
@@ -99,6 +105,14 @@ std::shared_ptr <automata> det_n_min(const std::shared_ptr <automata>& nfa){
     minimal_dfa(dfa);
     return dfa;
 }
+
+
+
+std::shared_ptr <automata> simulate_min(const std::shared_ptr <automata>& nfa){
+    nfa->create_simulate_matrix();
+    return nullptr;
+}
+
 
 
 bool language_intersect(const std::shared_ptr <automata>& first,const std::shared_ptr <automata>& second){
@@ -149,23 +163,10 @@ bool language_equal(const std::shared_ptr <automata>& first, const std::shared_p
         language_intersect(first_comple, dfa_second)){
         return false;
     }
-    else{
-        return true;
-    }
+    return true;
 }
 
-//todo neico tu je velmi zle
-state_set find_power_closure(std::vector <power_element>& power_set,
-                             const std::shared_ptr <auto_state>& needle){
-    for(auto closure: power_set){
-        auto tmp = closure.get_set();
-        if (tmp.find(needle) != tmp.end()){
-            return tmp;
-        }
-    }
-    state_set empty;
-    return empty;
-}
+
 //todo aj tu je nieco zle
 void insert_pow_set(power_element adding, std::vector <power_element>& power_set){
     for (auto& element: power_set){
@@ -175,6 +176,16 @@ void insert_pow_set(power_element adding, std::vector <power_element>& power_set
         }
     }
     power_set.push_back(adding);
+}
+
+void init_power_hash(std::unordered_map <std::shared_ptr <auto_state>, state_set>& help_table,
+                     const std::vector <power_element>& previous){
+    for (auto closure: previous){
+        auto old_set = closure.get_set();
+        for (const auto& element: old_set){
+            help_table[element] = old_set;
+        }
+    }
 }
 
 std::shared_ptr <auto_state> get_smallest_state(const state_set& states){
@@ -190,13 +201,6 @@ std::shared_ptr <auto_state> get_smallest_state(const state_set& states){
     return found;
 }
 
-
-void add_help_table(std::unordered_map <std::shared_ptr <auto_state>, state_set>& help_table,
-                    const std::shared_ptr <auto_state>& key, state_set adding){
-    if (help_table.find(key) == help_table.end()){
-        help_table[key] = std::move(adding);
-    }
-}
 
 power_element::power_element(const std::shared_ptr <auto_state>& state,
                              std::unordered_map <std::string, state_set>& trans){
@@ -277,26 +281,16 @@ std::unordered_map <std::string, state_set> auto_state::get_trans(){
 }
 
 //todo smarismaria
-void auto_state::get_pow_trans(std::vector <power_element>& previous,
-                               std::unordered_map <std::string, state_set>& new_trans,
+void auto_state::get_pow_trans(std::unordered_map <std::string, state_set>& new_trans,
                                std::unordered_map <std::shared_ptr <auto_state>, state_set>& helper){
     for (const auto& row: this->transitions){
-        state_set found_closure;
         auto search = *(row.second.begin());
-        if (helper.find(search) != helper.end()){
-            found_closure = helper[search];
-        }
-        else{
-            found_closure = find_power_closure(previous, search);
-            if (found_closure.empty()){
-                std::cerr << "Couldn't find any closure with given state in get_pow_trans" << std::endl;
-                continue;
-            }
-
-            helper[search] = found_closure;
+        if (helper.find(search) == helper.end()){
+            std::cerr << "Couldn't find any closure with given state in get_pow_trans" << std::endl;
+            continue;
         }
 
-        new_trans[row.first] = found_closure;
+        new_trans[row.first] = helper[search];
     }
 }
 
@@ -387,6 +381,26 @@ void auto_state::set_power_state(const std::string& new_val,
         this->transitions[element.first].clear();
         this->transitions[element.first].insert(smallest_state);
     }
+}
+
+
+void auto_state::get_trans_card(std::vector <int>& row, const std::string& symbol){
+    auto search = this->transitions.find(symbol);
+    if (search == this->transitions.end()){
+        std::fill(row.begin(), row.end(), 0);
+    }
+    else{
+        std::fill(row.begin(), row.end(), search->second.size());
+    }
+}
+
+bool auto_state::not_under_simulate(const std::shared_ptr <auto_state>& second){
+    for(const auto& element: this->transitions){
+        if (not second->transitions.contains(element.first)){
+            return true;
+        }
+    }
+    return false;
 }
 
 //TODO je to extra hnusne sprav to nromalne
@@ -729,7 +743,7 @@ std::shared_ptr <automata> automata::reverse(){
 }
 
 void automata::init_power_set(std::vector <power_element>& pow_set){
-    power_element final = (power_element)this->accept_states;
+    power_element final = (power_element)this->accept_states; //todo referencie
     power_element non_final = power_element();
     for (const auto& element: this->state_table){
         if (this->accept_states.find(element.second) == this->accept_states.end()){
@@ -744,14 +758,15 @@ void automata::init_power_set(std::vector <power_element>& pow_set){
 void automata::split_power_state(std::vector <power_element>& previous,
                                  std::vector <power_element>& next){
     std::unordered_map <std::shared_ptr <auto_state>, state_set> help_table;
+    init_power_hash(help_table, previous);
+
     for (auto closure: previous){
         auto old_set = closure.get_set();
         if (old_set.size() == 1){
-            std::shared_ptr <auto_state> only_element = *old_set.begin();
-            add_help_table(help_table, only_element, old_set);
-
             std::unordered_map <std::string, state_set> trans;
-            only_element->get_pow_trans(previous, trans, help_table);
+            std::shared_ptr <auto_state> only_element = *old_set.begin();
+            only_element->get_pow_trans(trans, help_table);
+
             closure.set_trans(trans);
             next.push_back(closure);
             continue;
@@ -759,10 +774,12 @@ void automata::split_power_state(std::vector <power_element>& previous,
 
         std::vector <power_element> new_part;
         for (const auto& element: old_set){
-            add_help_table(help_table, element, old_set);
             std::unordered_map <std::string, state_set> trans;
-            element->get_pow_trans(previous, trans, help_table);
+            //auto time = clock();
+            element->get_pow_trans(trans, help_table);
+            //auto tim = clock();
             insert_pow_set(power_element(element, trans), new_part);
+            //std::cout << std::fixed << (float) (tim - time) / CLOCKS_PER_SEC << " ------- " << (float) (clock() - tim) / CLOCKS_PER_SEC << std::endl;
         }
         next.insert(next.end(), new_part.begin(), new_part.end());
     }
@@ -786,6 +803,180 @@ std::shared_ptr <automata> automata::complement(){
 
     comple->reverse_accept_states();
     return comple;
+}
+
+void automata::create_simulate_matrix(){
+    unsigned long state_num = this->state_table.size();
+    std::unordered_map <std::string, int> index_table;
+    std::unordered_map<std::string, std::vector<std::vector<int>>> card_tables;
+    this->init_card_tables(card_tables, index_table, state_num);
+
+
+    std::cout << "Index table" <<std::endl;
+    for (auto eleme: index_table){
+        std::cout << eleme.first << " -> " << eleme.second << std::endl;
+    }
+
+    std::cout << "Card table" << std::endl;
+    for (auto tabale: card_tables){
+        std::cout << "symbol: " << tabale.first << std::endl;
+        for (int i = 0; i < state_num; i++){
+            for (int j = 0; j < state_num; j++){
+                std::cout << tabale.second[i][j] << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << std::endl << std::endl;
+    }
+
+    auto rev_auto = this->reverse();
+
+    std::vector<bool> row(state_num, true);
+    std::vector<std::vector<bool>>omega_matrix(state_num, row);
+    std::vector <std::pair <std::shared_ptr <auto_state>, std::shared_ptr <auto_state>>> gone_stack;
+    this->init_omega_matrix(state_num, omega_matrix, gone_stack, index_table);
+
+    std::cout << "Omega table" << std::endl;
+    for (int i = 0; i < state_num; i++){
+        for (int j = 0; j < state_num; j++){
+            std::cout << omega_matrix[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << "STack: ";
+    for (auto element: gone_stack){
+        std::cout << element.first->get_value() << "-" << element.second->get_value() << " ";
+    }
+    std::cout << std::endl;
+
+
+    while (not gone_stack.empty()){
+        auto curr_pair = gone_stack.back();
+        gone_stack.pop_back();
+        std::cout << "I= " << curr_pair.first->get_value() << " J= " << curr_pair.second->get_value() << std::endl;
+
+        for (const auto& symbol: this->alphabet){
+            auto rev_search = rev_auto->state_table.find(curr_pair.second->get_value());
+            if (rev_search == rev_auto->state_table.end()){
+                std::cerr << "UGHHHH" << std::endl;
+                break;
+            }
+            auto trans_from = rev_search->second->get_trans_row(symbol);
+            auto search = card_tables.find(symbol);
+            if (search == card_tables.end()){
+                std::cerr << "Oh no..." << std::endl;
+                continue;
+            }
+            auto curr_card = search->second;
+
+            for (const auto& state_from: trans_from){
+                std::cout << "K= " << state_from->get_value() << std::endl;
+                auto search_first = index_table.find(curr_pair.first->get_value());
+                auto search_second = index_table.find(state_from->get_value());
+                if (search_first == index_table.end() or search_second == index_table.end()){
+                    std::cerr << "NOPE" << std::endl;
+                    break;
+                }
+                int first_index = search_first->second;
+                int second_index = search_second->second;
+                curr_card[first_index][second_index]--;
+                if (curr_card[first_index][second_index] == 0){
+                    auto rev_searc = rev_auto->state_table.find(curr_pair.first->get_value());
+                    if (rev_searc == rev_auto->state_table.end()){
+                        std::cerr << "UGHHHH" << std::endl;
+                        break;
+                    }
+                    auto trans_remove = rev_searc->second->get_trans_row(symbol);
+                    for (const auto& remove_state: trans_remove){
+                        std::cout << "M= " << remove_state->get_value() << std::endl;
+                        auto search_remove = index_table.find(remove_state->get_value());
+                        if (search_remove == index_table.end()){
+                            std::cerr << "NOPE" << std::endl;
+                            break;
+                        }
+                        int remove_index = search_remove->second;
+
+                        if (omega_matrix[remove_index][second_index]){
+                            std::cout << "Removing m= " << remove_state->get_value() << " - k=" << state_from->get_value()  <<std::endl;
+                            omega_matrix[remove_index][second_index] = false;
+                            gone_stack.emplace_back(std::make_pair(remove_state, state_from));
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+    //TODO nejak blbo je ta omega
+    std::cout << "Omega table" << std::endl;
+    for (int i = 0; i < state_num; i++){
+        for (int j = 0; j < state_num; j++){
+            std::cout << omega_matrix[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+    //todo vypocet heh
+}
+
+
+void automata::init_card_tables(std::unordered_map<std::string, std::vector<std::vector<int>>>& card_tables,
+                                std::unordered_map <std::string, int>& index_table, unsigned long state_num){
+    for (const auto& symbol: this->alphabet) {
+        std::vector <std::vector <int>> column;
+        card_tables[symbol] = column;
+    }
+
+    int index = 0;
+    for (const auto& state: this->state_table){
+        index_table[state.first] = index;
+        index ++;
+
+        for (const auto& symbol: this->alphabet) {
+            std::vector <int> row(state_num);
+            state.second->get_trans_card( row, symbol);
+            auto search = card_tables.find(symbol);
+            if (search != card_tables.end()){
+                search->second.push_back(row);
+            }
+        }
+    }
+}
+
+
+void automata::init_omega_matrix(unsigned  long arr_size, std::vector<std::vector<bool>>& omega_matrix,
+                                 std::vector <std::pair <std::shared_ptr <auto_state>, std::shared_ptr <auto_state>>>& gone_stack,
+                                 std::unordered_map <std::string, int>& index_table){
+    //prec dvojice final/nonfinal states
+    //prec dvojice vies ist cez prechod a nevie ist  cez prechod
+    //std::cout << omega_matrix[0][0] << std::endl;
+    for (const auto& x: this->state_table){
+        auto x_search = index_table.find(x.first);
+        if (x_search == index_table.end()){
+            std::cerr <<"KAAAMO" <<std::endl;
+            continue;
+        }
+        int x_index = x_search->second;
+
+        for (const auto& y: this->state_table){
+            auto y_search = index_table.find(y.first);
+            if (y_search == index_table.end()){
+                std::cerr <<"KAAAMO" <<std::endl;
+                continue;
+            }
+            int y_index = y_search->second;
+
+            if (y_index >= arr_size or x_index >=arr_size){
+                std::cerr << "NETOTOKAMO" <<std::endl;
+                return;
+            }
+
+            if ((this->accept_states.contains(x.second) and not this->accept_states.contains(y.second))
+                or x.second->not_under_simulate(y.second)){
+                omega_matrix[x_index][y_index] = 0;
+                gone_stack.emplace_back(std::make_pair(x.second, y.second));
+            }
+        }
+    }
 }
 
 
@@ -814,3 +1005,5 @@ void automata::print(){
     std::cout << std::endl;
     std::cout << "------------------------------------------------------------" << std::endl;
 }
+
+

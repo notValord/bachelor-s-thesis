@@ -23,18 +23,23 @@ void debug(){
 
    std::set <std::string> init_states = {"0"};
    std::set <std::string> fin_states = {"2"};
-   automata pokus1(states, alphabet, trans, init_states, fin_states);
+   automata pokus1(states, alphabet, trans, init_states, fin_states);**/
 
-   std::set <std::string> state = {"0", "1", "2"};
-   std::set <std::string> alphabe = {"a", "b", "eps"};
-   std::vector <std::array<std::string, 3>> tran = {{"0", "eps", "1"},
-                                                    {"0", "b", "2"},
-                                                    {"1", "b", "2"},
-                                                    {"1", "eps", "2"}};
+   std::set <std::string> state = {"1", "2", "3", "4"};
+   std::set <std::string> alphabe = {"a", "b"};
+   std::vector <std::array<std::string, 3>> tran = {{"1", "b", "4"},
+                                                    {"1", "a", "3"},
+                                                    {"4", "a", "2"},
+                                                    {"4", "a", "3"},
+                                                    {"3", "a", "3"},
+                                                    {"3", "a", "2"},
+                                                    {"2", "a", "2"},
+                                                    {"2", "a", "1"}};
 
-   std::set <std::string> init_state = {"0"};
-   std::set <std::string> fin_state = {"2"};
-   automata pokus2(state, alphabe, tran, init_state, fin_state);**/
+   std::set <std::string> init_state = {"1"};
+   std::set <std::string> fin_state = {"2", "3"};
+   std::shared_ptr<automata> pokus2(std::make_shared<automata> (state, alphabe, tran, init_state, fin_state));
+   simulate_min(pokus2);
     //auto rev = pokus1.reverse();
     //rev.print();
     //pokus1.print();
@@ -83,7 +88,7 @@ void run_all(){
     int index = 0;
     int error = 0;
     while (not error) {
-        std::string file = base + std::to_string(index)+ ".vtf";
+        std::string file = base + std::to_string(index) + ".vtf";
         error = run_reduction(file);
         index++;
     }
@@ -91,6 +96,10 @@ void run_all(){
 
 //usage: ./automata {-t min_det}  [--file]
 int main(int argc, char* argv[]) {
+    if (1){
+        debug();
+        return 0;
+    }
     std::string arg_type, arg_file;
     if (parse_args(argc, argv, arg_type, arg_file)){
         return -1;
