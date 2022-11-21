@@ -1,4 +1,4 @@
-/*
+/**
 * Project name: Effective reduction of Finite Automata
 * Author: Veronika Molnárová
 * Date: 18.10 2022

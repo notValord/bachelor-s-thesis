@@ -11,38 +11,74 @@
 #include <ctime>
 
 void debug(){
-    /**
-   std::set <std::string> states = {"0", "1", "2", "3"};
+    /*
+    std::set <std::string> states = {"s0", "s1", "s2", "s3"};
+    std::set <std::string> alphabet = {"a", "b"};
+    std::vector <std::array<std::string, 3>> trans = {{"s0", "a", "s1"},
+                                                      {"s0", "b", "s2"},
+                                                      {"s1", "a", "s3"},
+                                                      {"s2", "a", "s3"}};
+
+    std::set <std::string> init_states = {"s0"};
+    std::set <std::string> fin_states = {"s3"};*/
+
+    /*
+   std::set <std::string> states = {"s0", "s1", "s2", "s3"};
    std::set <std::string> alphabet = {"a", "b", "eps"};
-   std::vector <std::array<std::string, 3>> trans = {{"0", "eps", "1"},
-                                                     {"0", "b", "2"},
-                                                     {"1", "a", "3"},
-                                                     {"1", "b", "2"},
-                                                     {"1", "eps", "2"},
-                                                     {"2", "b", "3"}};
+   std::vector <std::array<std::string, 3>> trans = {{"s0", "eps", "s1"},
+                                                     {"s0", "b", "s2"},
+                                                     {"s1", "a", "s3"},
+                                                     {"s1", "b", "s2"},
+                                                     {"s1", "eps", "s2"},
+                                                     {"s2", "b", "s3"}};
 
-   std::set <std::string> init_states = {"0"};
-   std::set <std::string> fin_states = {"2"};
-   automata pokus1(states, alphabet, trans, init_states, fin_states);**/
+   std::set <std::string> init_states = {"s0"};
+   std::set <std::string> fin_states = {"s3"};*/
+    //std::shared_ptr<automata> pokus1(std::make_shared<automata> (states, alphabet, trans, init_states, fin_states));
 
-   std::set <std::string> state = {"1", "2", "3", "4"};
+
+   std::set <std::string> state = {"s1", "s2", "s3", "s4"};
    std::set <std::string> alphabe = {"a", "b"};
-   std::vector <std::array<std::string, 3>> tran = {{"1", "b", "4"},
-                                                    {"1", "a", "3"},
-                                                    {"4", "a", "2"},
-                                                    {"4", "a", "3"},
-                                                    {"3", "a", "3"},
-                                                    {"3", "a", "2"},
-                                                    {"2", "a", "2"},
-                                                    {"2", "a", "1"}};
+   std::vector <std::array<std::string, 3>> tran = {{"s1", "b", "s4"},
+                                                    {"s1", "a", "s3"},
+                                                    {"s4", "a", "s2"},
+                                                    {"s4", "a", "s3"},
+                                                    {"s3", "a", "s3"},
+                                                    {"s3", "a", "s2"},
+                                                    {"s2", "a", "s2"},
+                                                    {"s2", "a", "s1"}};
 
-   std::set <std::string> init_state = {"1"};
-   std::set <std::string> fin_state = {"2", "3"};
-   std::shared_ptr<automata> pokus2(std::make_shared<automata> (state, alphabe, tran, init_state, fin_state));
-   simulate_min(pokus2);
-    //auto rev = pokus1.reverse();
-    //rev.print();
-    //pokus1.print();
+   std::set <std::string> init_state = {"s1"};
+   std::set <std::string> fin_state = {"s2", "s3"};
+   std::shared_ptr<automata> pokus3(std::make_shared<automata> (state, alphabe, tran, init_state, fin_state));
+
+    simulate_min(pokus3);
+    pokus3->print();
+    //auto rev = pokus3->reverse();
+    //rev->print();
+
+    //auto pokus2 = pokus1->determine();
+    //pokus2->print();
+
+    /*
+    minimal_dfa(pokus2);
+    pokus1->print();
+    pokus2->print();
+
+    if (language_equal(pokus2, pokus3)){
+        printf("Same auotmata\n");
+    }
+    else{
+        printf("JE TO INE\n");
+    }*/
+    /*
+    auto input_automata = take_input("armcNFA_inclTest_12.vtf");
+    if (input_automata){
+        input_automata->print();
+    }
+    else{
+        std::cout << "nullptr" << std::endl;
+    }*/
     //determine_nfa(pokus1);
 }
 
@@ -72,6 +108,8 @@ int run_reduction(const std::string& input_file){
     if (input_automata == nullptr) {
         return -1;
     }
+    auto copy = input_automata->copy();
+    //input_automata->print();
     auto time_bef_d = clock();
     auto dfa = det_n_min(input_automata);
     auto time_aft_d = clock();
@@ -79,7 +117,16 @@ int run_reduction(const std::string& input_file){
     bool is_equal = language_equal(input_automata, dfa);
     std::cout << std::fixed << input_file << " " << input_automata->get_state_number() << " "
               << dfa->get_state_number() << " " << (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC <<
-              " " << is_equal << " " << (float) (clock() - time_aft_d) / CLOCKS_PER_SEC << std::endl;
+              " " << is_equal << " " << (float) (clock() - time_aft_d) / CLOCKS_PER_SEC ;
+
+
+    time_bef_d = clock();
+    simulate_min(copy);
+    time_aft_d = clock();
+    is_equal = language_equal(input_automata, copy);
+    std::cout << std::fixed << " " << copy->get_state_number() << " " <<
+                (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC << " " << is_equal << " " <<
+                (float) (clock() - time_aft_d) / CLOCKS_PER_SEC << std::endl;
     return 0;
 }
 
@@ -96,22 +143,26 @@ void run_all(){
 
 //usage: ./automata {-t min_det}  [--file]
 int main(int argc, char* argv[]) {
-    if (1){
+    if (0){
         debug();
         return 0;
     }
-    std::string arg_type, arg_file;
-    if (parse_args(argc, argv, arg_type, arg_file)){
-        return -1;
-    }
 
-    if (arg_file.empty()){
+    std::string arg_type, arg_file;
+    //if (parse_args(argc, argv, arg_type, arg_file)){
+    //    return -1;
+    //}
+
+    if (/*arg_file.empty()*/0){
         run_all();
     }
     else{
-        if (run_reduction(arg_file)){
+        //arg_file
+        run_all();
+        /*
+        if (run_reduction("armcNFA_inclTest_4.vtf")){
             std::cerr << "Couldn't parse automata form the input file\n";
-        }
+        }*/
     }
     return 0;
 }

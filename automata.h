@@ -24,52 +24,38 @@
 #include <list>
 #include <cstring>
 
+#include "auto_dictionary.h"
+
 
 class auto_state;
 class automata;
 class power_element;
 
-using state_set = std::set <std::shared_ptr <auto_state>>;
-
-/// Connects two given strings in alphabetical order
-std::string combine_string(const std::string&, const std::string&);
-
-/**
- * Takes values of passed states and combine them into one in alphabetical order
- * @param states Set of pointers to automata states to be merged together
- * @return Value of single state
- */
-std::string combine_states(state_set);
+using ptr_state_vector = std::vector<std::shared_ptr<auto_state>>;
 
 
 
-/// Checks whether two sets of pointer to states have an intersection
-bool has_intersect(const state_set&, const state_set&);
+/// Checks whether two sets of pointers to states have an intersection
+bool has_intersect(ptr_state_vector& first, ptr_state_vector& second);
 
-
-
-/**
- * Determines the state by taking its transitions for each symbol, combining them into one state
- * and adding a single transition
- * @param dfa Pointer to the automata which is being created
- * @param set_queue Pointer to vector of states waiting to be processed
- * @param current_set The current set of states being processed
- * @param current_state Value of newly created state
- */
-void determine_state(const std::shared_ptr<automata>&, std::vector <state_set>*,
-                     const state_set&, const std::string&);
 
 /// Replaces all epsilon transitions within the automata, determines it and returns a new one
 std::shared_ptr <automata> determine_nfa(const std::shared_ptr <automata>&);
 
-//TODO
+/// Checks whether two vectors of pointers to power element are equal
+bool is_eq(std::vector <std::shared_ptr <power_element>>&, std::vector <std::shared_ptr <power_element>>&);
+
+/// Creates minimal equivalent of deterministic automata using power states
 void minimal_dfa(const std::shared_ptr <automata>&);
 
 /// Creates the minimal deterministic automata
 std::shared_ptr <automata> det_n_min(const std::shared_ptr <automata>& nfa);
 
 
-std::shared_ptr <automata> simulate_min(const std::shared_ptr <automata>& nfa);
+void symetric_fragment(std::vector<std::vector<bool>>& omega_matrix);
+
+void simulate_min(const std::shared_ptr <automata>& nfa);
+
 
 
 /// Checks whether two given automatas have intersection in their languages
@@ -79,15 +65,17 @@ bool language_intersect(const std::shared_ptr <automata>&, const std::shared_ptr
 bool language_equal(const std::shared_ptr <automata>&, const std::shared_ptr <automata>&);
 
 
-//todo
-void insert_pow_set(power_element, std::vector <power_element>&);
-//todo
-std::shared_ptr <auto_state> get_smallest_state(const state_set&);
+
+void insert_pow_set(const std::shared_ptr <power_element>&, std::vector <std::shared_ptr<power_element>>&);
+
+void init_power_hash(std::vector <ptr_state_vector>&, const std::vector <std::shared_ptr<power_element>>&);
+
+std::shared_ptr <auto_state> get_smallest_state(const ptr_state_vector& states);
 
 class power_element{
 private:
-    state_set same_set; //nemusi byt set myslim
-    std::unordered_map <std::string, state_set> transition;
+    ptr_state_vector same_set;      //todo pointre/referencie
+    std::vector <ptr_state_vector> transition;
 
 public:
     friend bool operator==(const power_element& first, const power_element& second){
@@ -97,17 +85,24 @@ public:
         return false;
     }
 
-    power_element(const std::shared_ptr <auto_state>& state, std::unordered_map <std::string, state_set>& trans);
+    friend bool operator!=(const power_element& first, const power_element& second){
+        if (first.same_set != second.same_set){
+            return true;
+        }
+        return false;
+    }
 
-    explicit power_element(state_set set);
+    power_element(const std::shared_ptr <auto_state>& state, std::vector<ptr_state_vector>& trans);
+
+    explicit power_element(ptr_state_vector set);
 
     power_element();
 
-    state_set get_set();
-    std::unordered_map <std::string, state_set> get_trans();
+    ptr_state_vector& get_set();
+    std::vector<ptr_state_vector>& get_trans();
 
     void add_state(const std::shared_ptr <auto_state>& state);
-    void set_trans(const std::unordered_map <std::string, state_set>& new_trans);
+    void set_trans(const std::vector<ptr_state_vector>& new_trans);
 };
 
 
@@ -116,13 +111,13 @@ public:
 //                               through such symbol
 class auto_state{
     private:
-        std::string value;
-        std::unordered_map <std::string, state_set> transitions;
+        int index;
+        std::vector <std::shared_ptr<ptr_state_vector>> transitions;
 
     public:
         // Constructor of tha state needing its value
-        explicit auto_state(const std::string &value){
-            this->value = value;
+        explicit auto_state(int value){
+            this->index = value;
         }
 
     // Method print - prints the value and all transitions of the state
@@ -130,41 +125,42 @@ class auto_state{
 
     // Method has_eps - checks whether the state has any transition through epsilon symbol,
 //                  if so returns true
-        bool has_eps();
+        bool has_trans(int value);
 
     // Method get_value - returns the value of the state
-        std::string get_value();
+        int get_value() const;
+        void set_value(int new_val);
+
     // Method get_trans_row - takes a symbol and returns a pointer of the set of states
 //                          reachable through such symbol
-        state_set get_trans_row(const std::string& symbol);
-        std::unordered_map <std::string, state_set> get_trans();
+        std::shared_ptr<ptr_state_vector> get_trans_row(int symbol);
+        std::vector <std::shared_ptr<ptr_state_vector>>& get_trans();
 
-        void get_pow_trans(std::unordered_map <std::string, state_set>& new_trans,
-                           std::unordered_map <std::shared_ptr <auto_state>, state_set>& helper);
+        void get_pow_trans(std::vector<ptr_state_vector>& new_trans, std::vector<ptr_state_vector>& helper);
 
     // Method add_transition - takes a symbol and pointer to another state, creates a new transition
 //                       - shows and error message if adding a duplicate transition
-        void add_transition(const std::string& symbol, const std::shared_ptr <auto_state>& trans_to);
+        void add_transition(int symbol, const std::shared_ptr <auto_state>& trans_to);
     // Method add_transition_row - adds a multiple transitions through the same symbol
-        void add_transition_row(const std::string& symbol,
-                                const state_set& new_trans);
+        void add_transition_row(int symbol, const ptr_state_vector& new_row);
 
     // Method get_eps_transitions - returns epsilon transitions of the current state,
 //                              if there are none returns and empty set
-        state_set get_eps_transitions();
+        //state_set get_eps_transitions();
     // Method replace_eps_trans - deletes all epsilon transitions and adds all of the transitions form the
 //                              set replace passed to the method
-        void replace_eps_trans(const state_set& replace);
+        void replace_eps_trans(const ptr_state_vector& replace, int eps_index);
 
-        std::shared_ptr <auto_state> get_next(const std::string& symbol);
+        std::shared_ptr <auto_state> get_next(const int symbol);
 
         void reverse_trans(const std::shared_ptr <automata>& reverse);
         void clear_trans();
-        void copy_state(const std::shared_ptr <automata>& comple);
+        void copy_state(const std::shared_ptr<automata>& copy_auto);
 
-        void set_power_state(const std::string& new_val, std::unordered_map <std::string, state_set>& new_trans);
+        void set_power_state(std::vector <ptr_state_vector>& new_trans);
+        void check_simul_trans(const std::vector <ptr_state_vector>& help_table);
 
-        void get_trans_card(std::vector <int>& row, const std::string& symbol);
+        int get_trans_card(const int symbol);
         bool not_under_simulate(const std::shared_ptr <auto_state>& second);
 };
 
@@ -173,14 +169,16 @@ class auto_state{
 //                  alphabet, initial and accept states of the automata
 class automata{
     private:
-        std::unordered_map <std::string, std::shared_ptr <auto_state>> state_table;
-        std::set <std::string> alphabet;
-        state_set init_states;
-        state_set accept_states;
+
+    std::vector <std::shared_ptr <auto_state>> state_table;
+    int alphabet = 0;
+    std::vector <int> init_states;
+    std::vector <int> accept_states;
+    auto_dictionary dict;
 
     // Method recurse_find_all_eps - recursive function used to get epsilon closure of the passed group,
 //                               returns the found closure
-        state_set recurse_find_all_eps(const state_set& search_group);
+    void recurse_find_all_eps(const ptr_state_vector& search_group, int eps_index, ptr_state_vector& ret);
 
     public:
     // Constructor of the automata - takes a set of states, alphabet, initial and accept states
@@ -190,11 +188,12 @@ class automata{
                  const std::set <std::string>& init_states, const std::set <std::string>& fin_states);
 
     // Constructor of the automata - takes only the alphabet and one state
-        automata (const std::string& state, const std::set <std::string>& alphabet);
+        automata (const std::string& state, const std::vector <std::string>& alphabet);
+        automata (int alphabet, auto_dictionary& dict);
         automata ();
         ~automata();
 
-        void min_power(const std::vector <power_element>& power_set);
+        void min_power(const std::vector <std::shared_ptr<power_element>>& power_set);
         // Copy constructor TODO je to zle
         std::shared_ptr <automata> copy();
 
@@ -202,56 +201,57 @@ class automata{
 //                  - in case of adding a dead state the infinite loop is also added and
 //                    always returns false
         bool add_state(const std::string& state_value);
+
         void add_alphabet(const std::string& new_symbol);
     // Method add_transition - adds a new transitions to the automata
 //                       - if some of the states doesn't exist in the automata an error message is shown
         void add_transition(const std::string& symbol, const std::string& from, const std::string& to);
+        void create_transition(const int symbol, const int from, const int to);
 
-        void add_init_state(const std::string& init_state);
+        void add_init_state(int init_state);
         void add_init_state_force(const std::string& init_state);
     // Method add_accept_state - adds accept state to the automata
 //                         - if the state doesn't exist in the automata an error message is shown
-        void add_accept_state(const std::string& fin_state);
+        void add_accept_state(int fin_state);
         void add_accept_state(const std::shared_ptr <auto_state>& fin_state);
         void add_accept_state_force(const std::string& fin_state);
 
 
-        std::set <std::string> get_alphabet();
-        std::string get_init();
+        int get_alphabet() const;
+        int get_init();
         unsigned long get_state_number();
 
-        bool is_final(const std::string& state);
+        bool is_final(const int& state);
 
-        std::string get_next_state(const std::string& symbol, const std::string& state);
+        int get_next_state(const int& symbol, const int& state);
 
     // Method remove_eps_transitions - find epsilon closures for all states and using them replaces all
 //                                 epsilon transitions in the automata
         void remove_eps_transitions();
 
+        std::string combine_states(ptr_state_vector states);
+        void determine_state(automata* old, std::vector <ptr_state_vector>& set_queue,
+                              const ptr_state_vector& current_set, const std::string & current_state);
     // Method determine - creates and returns a new deterministic automata representing the same language
         std::shared_ptr <automata> determine();
         std::shared_ptr <automata> reverse();
 
-        void init_power_set(std::vector <power_element>& pow_set);
+        void init_power_set(std::vector <std::shared_ptr<power_element>>& pow_set);
 
-        static void split_power_state(std::vector <power_element>&, std::vector <power_element>&);
+        void split_power_state(std::vector <std::shared_ptr <power_element>>& previous,
+                                      std::vector <std::shared_ptr <power_element>>& next);
 
         void reverse_accept_states();
         std::shared_ptr <automata> complement();
 
-        void create_simulate_matrix();
-        void init_card_tables(std::unordered_map<std::string, std::vector<std::vector<int>>>&,
-                                    std::unordered_map <std::string, int>&, unsigned long);
-        //void init_omega_matrix(unsigned  long arr_size, bool (&omega_matrix)[*][*],
-        //                 std::vector <std::pair <std::shared_ptr <auto_state>, std::shared_ptr <auto_state>>>,
-        //                     std::unordered_map <std::string, int>&);
+        void minimal_sim(std::vector<std::vector<bool>>& omega_matrix);
+        void create_simulate_matrix(std::vector<std::vector<bool>>& omega_matrix);
+        void init_card_tables(std::vector <std::vector <std::vector<int>>>& card_tables);
+        void init_omega_matrix(std::vector<std::vector<bool>>&, std::vector <std::pair <int, int>>&);
 
+        bool same_alphabets(const std::shared_ptr <automata>& second);
     // Method print - prints the automata
         void print();
-
-    void init_omega_matrix(unsigned long arr_size, std::vector<std::vector<bool>>& omega_matrix,
-                           std::vector<std::pair<std::shared_ptr<auto_state>, std::shared_ptr<auto_state>>> &gone_stack,
-                           std::unordered_map<std::basic_string<char>, int> &index_table);
 };
 
 #endif //BAKALARKA_AUTOMATA_H
