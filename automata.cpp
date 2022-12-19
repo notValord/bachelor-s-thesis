@@ -22,7 +22,7 @@ bool has_intersect(ptr_state_vector& first, ptr_state_vector& second){
     std::sort(first.begin(), first.end());
     std::sort(second.begin(), second.end());
 
-    std::vector <std::shared_ptr <auto_state>> tmp(5);
+    std::vector <std::shared_ptr <auto_state>> tmp(first.size());
     std::vector <std::shared_ptr <auto_state>>::iterator last;
 
     last = std::set_intersection(first.begin(), first.end(), second.begin(), second.end(), tmp.begin());
@@ -80,6 +80,10 @@ std::shared_ptr <automata> det_n_min(const std::shared_ptr <automata>& nfa){
 
 void symetric_fragment(std::vector<std::vector<bool>>& omega_matrix){
     for (int i = 0; i < omega_matrix.size(); i++){
+        if (omega_matrix[i][i] == 0){
+            std::cout << "NOPE!!!!!"<< std::endl;
+            exit(-5);
+        }
         for (int j = 0; j < omega_matrix[i].size(); j++){
             if (not omega_matrix[i][j]){
                 omega_matrix[j][i] = false;
@@ -92,8 +96,13 @@ void simulate_min(const std::shared_ptr <automata>& nfa){
     std::vector<std::vector <bool>> simulate_matrix;
     nfa->create_simulate_matrix(simulate_matrix);
     nfa->minimal_sim(simulate_matrix);
+}
 
-    return;
+std::shared_ptr<automata> rezidual_auto(const std::shared_ptr <automata>& nfa){
+    auto reverse_nfa = nfa->reverse();
+    auto rev_dfa = determine_nfa(reverse_nfa);
+    auto rez_prepare = rev_dfa->reverse();
+    return rez_prepare->rezidual();
 }
 
 
@@ -397,6 +406,14 @@ void auto_state::check_simul_trans(const std::vector <ptr_state_vector>& help_ta
         }
         ptr_state_vector new_trans;
         for (const auto& state: *row){
+            if (help_table.size() < state->get_value()){
+                std::cerr << "Nieco je blbo\n";
+                exit(-1);
+            }
+            if (help_table[state->get_value()].size() == 0){
+                std::cerr << "Heh?\n";
+                exit(-1);
+            }
             new_trans.push_back(*help_table[state->get_value()].begin());
         }
         row->clear();
@@ -421,7 +438,12 @@ bool auto_state::not_under_simulate(const std::shared_ptr <auto_state>& second){
     if (this->transitions.size() < second->transitions.size()){
         return true;
     }
+
     for (int i = 0; i < this->transitions.size(); i++){
+        if (i >= second->transitions.size()){
+            break;
+        }
+
         if (this->transitions[i] == nullptr && second->transitions[i] != nullptr){
             return true;
         }
@@ -438,6 +460,23 @@ void auto_state::copy_state(const std::shared_ptr<automata>& copy_auto){
 
         for (const auto& state: *this->transitions[i]){
             copy_auto->create_transition(i, this->index, state->index);
+        }
+    }
+}
+
+void auto_state::change_coverable(ptr_state_vector& covering_ptr, const std::shared_ptr<auto_state>& change){
+    for (auto& transition : this->transitions){
+        if (transition == nullptr){
+            continue;
+        }
+        auto search = std::find((*transition).begin(), (*transition).end(), change);
+        if (search == transition->end()){
+            continue;
+        }
+        else{
+            (*transition)[search-transition->begin()] = (*transition)[transition->size()-1];
+            transition->pop_back();
+            transition->insert(transition->end(), covering_ptr.begin(), covering_ptr.end());
         }
     }
 }
@@ -826,6 +865,27 @@ std::string automata::combine_states(ptr_state_vector states){
     return first;
 }
 
+std::string automata::combine_states(std::set<std::shared_ptr<auto_state>> states){
+    if (states.size() == 1){
+        return this->dict.get_state_name((*states.begin())->get_value());
+    }
+
+    auto first_id = *states.rbegin();
+    std::string first = this->dict.get_state_name(first_id->get_value());
+    states.erase(std::prev(states.end()));
+
+    while(not states.empty()){
+        auto second_id = *states.rbegin();
+        states.erase(std::prev(states.end()));
+
+        first += (DELIM + this->dict.get_state_name(second_id->get_value()));
+    }
+
+    return first;
+}
+
+
+//TODO undo strings
 void automata::determine_state(automata* old, std::vector <ptr_state_vector>& set_queue,
                                const ptr_state_vector& current_set, const std::string& current_state){
     ptr_state_vector new_state_vect;
@@ -915,11 +975,11 @@ std::shared_ptr <automata> automata::reverse(){
     }
 
     for (const auto& state: this->init_states){
-        reverse->add_init_state(state);
+        reverse->add_accept_state(state);
     }
 
     for (const auto& state: this->accept_states){
-        reverse->add_accept_state(state);
+        reverse->add_init_state(state);
     }
 
     return reverse;
@@ -1029,9 +1089,9 @@ void automata::minimal_sim(std::vector<std::vector<bool>>& omega_matrix){
 
                     search = std::find(this->init_states.begin(), this->init_states.end(), state->get_value());
                     if (search != this->init_states.end()) {
-                        this->accept_states.erase(search);          //could be expensice
+                        this->init_states.erase(search);          //could be expensice
                         if (std::count(this->init_states.begin(), this->init_states.end(), stays->get_value()) == 0) {
-                            this->accept_states.push_back(stays->get_value());
+                            this->init_states.push_back(stays->get_value());
                         }
                     }
                 }
@@ -1158,13 +1218,16 @@ void automata::init_omega_matrix(std::vector<std::vector<bool>>& omega_matrix,
     for (int i = 0; i < this->state_table.size(); i++){
         if (std::count(this->accept_states.begin(), this->accept_states.end(), i) == 0){
             for (auto fin: this->accept_states){
+                if (not omega_matrix[fin][i]){
+                    continue;
+                }
                 omega_matrix[fin][i] = false;
                 gone_stack.emplace_back(fin, i);
             }
         }
 
         for (int j = 0; j < this->state_table.size(); j++){
-            if (this->state_table[j]->not_under_simulate(this->state_table[i])){
+            if (omega_matrix[i][j] && this->state_table[j]->not_under_simulate(this->state_table[i])){
                 omega_matrix[i][j] = false;
                 gone_stack.emplace_back(i, j);
             }
@@ -1176,6 +1239,136 @@ void automata::init_omega_matrix(std::vector<std::vector<bool>>& omega_matrix,
 bool automata::same_alphabets(const std::shared_ptr <automata>& second){
     return this->dict.check_alphabets(second->dict);
 }
+
+void automata::remove_rezidual_state(const std::string& state_value, std::vector <std::string>& covering){
+    int state_index = this->dict.get_state_index(state_value);
+    auto state_ptr = this->state_table[state_index];
+    this->dict.remove_state(state_index);
+
+    unsigned int old_id, new_id;
+    while (this->dict.smooth_vector_state(old_id, new_id)){
+        this->state_table[new_id] = this->state_table[old_id];
+        this->state_table[new_id]->set_value(static_cast<int> (new_id));
+    }
+
+    this->state_table.pop_back();
+
+    ptr_state_vector covering_ptr;
+    int index;
+    for (const auto& cov: covering){
+        index = this->dict.get_state_index(cov);
+        covering_ptr.push_back(this->state_table[index]);
+    }
+
+    for (const auto& state: this->state_table){
+        state->change_coverable(covering_ptr, state_ptr);
+    }
+    //ziskat vector pointerov
+    //vsetky prechody do tohto stavu sa presunu do stavov co ho pokryvaju
+}
+
+void automata::create_rezidual_state(std::set<std::shared_ptr<auto_state>>& base, const std::shared_ptr <automata>& rezid,
+                                     const std::string& base_value,
+                                     std::vector <std::set<std::shared_ptr<auto_state>>>& all_states){
+    std::set <std::shared_ptr<auto_state>> state_set;
+    bool recurse;
+
+    for (int i = 0; i < this->alphabet; i++){
+        state_set.clear();
+
+        for (const auto& ptr_state: base){
+            auto row_ptr = ptr_state->get_trans_row(i);
+            if (row_ptr == nullptr){
+                continue;
+            }
+            state_set.insert(row_ptr->begin(), row_ptr->end());
+        }
+
+        if (state_set.empty()){
+            continue;
+        }
+
+        auto state_val = this->combine_states(state_set);
+        recurse = rezid->add_state(state_val);
+        rezid->add_transition(this->dict.get_alpha_name(i), base_value, state_val);
+        // create new state and add trans and recurse
+        if (recurse){
+            all_states.push_back(state_set);
+            this->create_rezidual_state(state_set, rezid, state_val, all_states);
+        }
+    }
+}
+
+std::shared_ptr <automata> automata::rezidual(){
+    std::shared_ptr <automata> rezid = std::make_shared <automata> ();
+    for (int i = 0; i < this->alphabet; i++){
+        rezid->add_alphabet(this->dict.get_alpha_name(i));
+    }
+
+    std::vector <std::set<std::shared_ptr<auto_state>>> new_states;
+    std::set<std::shared_ptr<auto_state>> new_init;
+    ptr_state_vector tmp_vec;
+    for (auto init: this->init_states){ // make one init state
+        new_init.insert(this->state_table[init]);
+    }
+
+    new_states.push_back(new_init);
+
+    auto init_val = combine_states(new_init);
+    rezid->add_init_state_force(init_val);
+    this->create_rezidual_state(new_init, rezid, init_val, new_states);
+
+    std::set <std::shared_ptr<auto_state>> compare_set;
+    std::vector <std::string> covering_vec;
+    for (const auto& new_state_set: new_states){
+        if (new_state_set.size() == 1){
+            continue;
+        }
+
+        std::vector <std::set<std::shared_ptr<auto_state>>> new_states_copy;
+        for (const auto& copy: new_states){
+            if (copy == new_state_set){
+                continue;
+            }
+            new_states_copy.push_back(copy);
+        }
+
+        for (auto& elem: new_states_copy){
+            if (elem.empty()){
+                continue;
+            }
+            if (std::includes(new_state_set.begin(), new_state_set.end(), elem.begin(), elem.end())){
+                compare_set.insert(elem.begin(), elem.end());
+                this->combine_states(elem);
+                covering_vec.push_back(this->combine_states(elem));
+            }
+        }
+
+        if (compare_set == new_state_set){
+            rezid->remove_rezidual_state(this->combine_states(compare_set), covering_vec);
+        }
+        compare_set.clear();
+        covering_vec.clear();
+    }
+
+    ptr_state_vector accept_ptr;
+    for (auto accept: this->accept_states){
+        accept_ptr.push_back(this->state_table[accept]);
+    }
+
+    for (const auto& acc_state_set: new_states){
+        ptr_state_vector state;
+        state.assign(acc_state_set.begin(), acc_state_set.end());
+        if (has_intersect(state, accept_ptr)){
+            if (rezid->dict.state_exists(this->combine_states(acc_state_set))){
+                rezid->add_accept_state(rezid->dict.get_state_index(this->combine_states(acc_state_set)));
+            }
+        }
+    }
+
+    return rezid;
+}
+
 
 void automata::print(){
     std::cout << "Printing state table\n";

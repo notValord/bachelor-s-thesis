@@ -56,7 +56,7 @@ void symetric_fragment(std::vector<std::vector<bool>>& omega_matrix);
 
 void simulate_min(const std::shared_ptr <automata>& nfa);
 
-
+std::shared_ptr<automata> rezidual_auto(const std::shared_ptr <automata>& nfa);
 
 /// Checks whether two given automatas have intersection in their languages
 bool language_intersect(const std::shared_ptr <automata>&, const std::shared_ptr <automata>&);
@@ -162,6 +162,8 @@ class auto_state{
 
         int get_trans_card(const int symbol);
         bool not_under_simulate(const std::shared_ptr <auto_state>& second);
+
+        void change_coverable(ptr_state_vector& covering_ptr, const std::shared_ptr<auto_state>& change);
 };
 
 // Class automata - represents a finite automata
@@ -194,7 +196,7 @@ class automata{
         ~automata();
 
         void min_power(const std::vector <std::shared_ptr<power_element>>& power_set);
-        // Copy constructor TODO je to zle
+        // Copy constructor TODO
         std::shared_ptr <automata> copy();
 
     // Method add_state - adds a new state to the automata, if the state is already present returns false
@@ -230,6 +232,7 @@ class automata{
         void remove_eps_transitions();
 
         std::string combine_states(ptr_state_vector states);
+        std::string combine_states(std::set<std::shared_ptr<auto_state>> states);
         void determine_state(automata* old, std::vector <ptr_state_vector>& set_queue,
                               const ptr_state_vector& current_set, const std::string & current_state);
     // Method determine - creates and returns a new deterministic automata representing the same language
@@ -250,6 +253,11 @@ class automata{
         void init_omega_matrix(std::vector<std::vector<bool>>&, std::vector <std::pair <int, int>>&);
 
         bool same_alphabets(const std::shared_ptr <automata>& second);
+
+        void remove_rezidual_state(const std::string& state_value, std::vector <std::string>& covering);
+        void create_rezidual_state(std::set<std::shared_ptr<auto_state>>& base, const std::shared_ptr <automata>& rezid,
+                                         const std::string& base_value, std::vector <std::set<std::shared_ptr<auto_state>>>& all_states);
+        std::shared_ptr <automata> rezidual();
     // Method print - prints the automata
         void print();
 };

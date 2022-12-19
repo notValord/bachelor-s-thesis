@@ -5,7 +5,7 @@
 * Subject: Bachelor's thesis
 */
 
-#define INPUT_DIRECTORY "../input_automata/"
+#define INPUT_DIRECTORY "../input_automata/1/"
 
 #include "vtf_input.h"
 
@@ -44,7 +44,7 @@ void parse_transition(const std::string& line, const std::shared_ptr <automata>&
 
 std::shared_ptr <automata> take_input(const std::string& file){
     std::string tmp;
-    std::ifstream input(INPUT_DIRECTORY + file);
+    std::ifstream input(file);
 
     if (input.is_open()){
         std::shared_ptr <automata> new_auto(std::make_shared <automata> ());        // empty new automata
