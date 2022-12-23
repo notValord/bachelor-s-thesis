@@ -34,10 +34,11 @@ class power_element;
 using ptr_state_vector = std::vector<std::shared_ptr<auto_state>>;
 
 
-
 /// Checks whether two sets of pointers to states have an intersection
 bool has_intersect(ptr_state_vector& first, ptr_state_vector& second);
 
+/// Creates the minimal deterministic automata
+std::shared_ptr <automata> det_n_min(const std::shared_ptr <automata>& nfa);
 
 /// Replaces all epsilon transitions within the automata, determines it and returns a new one
 std::shared_ptr <automata> determine_nfa(const std::shared_ptr <automata>&);
@@ -47,9 +48,6 @@ bool is_eq(std::vector <std::shared_ptr <power_element>>&, std::vector <std::sha
 
 /// Creates minimal equivalent of deterministic automata using power states
 void minimal_dfa(const std::shared_ptr <automata>&);
-
-/// Creates the minimal deterministic automata
-std::shared_ptr <automata> det_n_min(const std::shared_ptr <automata>& nfa);
 
 
 void symetric_fragment(std::vector<std::vector<bool>>& omega_matrix);
@@ -63,8 +61,6 @@ bool language_intersect(const std::shared_ptr <automata>&, const std::shared_ptr
 
 /// Checks whether two given automata have equal languages through determination and complements
 bool language_equal(const std::shared_ptr <automata>&, const std::shared_ptr <automata>&);
-
-
 
 void insert_pow_set(const std::shared_ptr <power_element>&, std::vector <std::shared_ptr<power_element>>&);
 
@@ -208,6 +204,7 @@ class automata{
     // Method add_transition - adds a new transitions to the automata
 //                       - if some of the states doesn't exist in the automata an error message is shown
         void add_transition(const std::string& symbol, const std::string& from, const std::string& to);
+        void add_transition(int symbol, int from, int to);
         void create_transition(const int symbol, const int from, const int to);
 
         void add_init_state(int init_state);
@@ -234,7 +231,7 @@ class automata{
         std::string combine_states(ptr_state_vector states);
         std::string combine_states(std::set<std::shared_ptr<auto_state>> states);
         void determine_state(automata* old, std::vector <ptr_state_vector>& set_queue,
-                              const ptr_state_vector& current_set, const std::string & current_state);
+                              const ptr_state_vector& current_set, int current_state);
     // Method determine - creates and returns a new deterministic automata representing the same language
         std::shared_ptr <automata> determine();
         std::shared_ptr <automata> reverse();
@@ -254,9 +251,9 @@ class automata{
 
         bool same_alphabets(const std::shared_ptr <automata>& second);
 
-        void remove_rezidual_state(const std::string& state_value, std::vector <std::string>& covering);
+        void remove_rezidual_state(const std::string& state_value, std::vector <int>& covering);
         void create_rezidual_state(std::set<std::shared_ptr<auto_state>>& base, const std::shared_ptr <automata>& rezid,
-                                         const std::string& base_value, std::vector <std::set<std::shared_ptr<auto_state>>>& all_states);
+                                         int base_value, std::vector <std::set<std::shared_ptr<auto_state>>>& all_states);
         std::shared_ptr <automata> rezidual();
     // Method print - prints the automata
         void print();

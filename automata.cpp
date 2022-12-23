@@ -30,14 +30,18 @@ bool has_intersect(ptr_state_vector& first, ptr_state_vector& second){
     if (last - tmp.begin()){
         return true;
     }
-
     return false;
 }
 
 
+std::shared_ptr <automata> det_n_min(const std::shared_ptr <automata>& nfa){
+    auto dfa = determine_nfa(nfa);
+    minimal_dfa(dfa);
+    return dfa;
+}
 
 std::shared_ptr <automata> determine_nfa(const std::shared_ptr <automata>& nfa){
-    nfa->remove_eps_transitions();
+    //nfa->remove_eps_transitions();
     auto dfa = nfa->determine();
     return dfa;
 }
@@ -72,30 +76,25 @@ void minimal_dfa(const std::shared_ptr <automata>& dnf){
     dnf->min_power(pow_vec_new);            // create new automata from the power states
 }
 
-std::shared_ptr <automata> det_n_min(const std::shared_ptr <automata>& nfa){
-    auto dfa = determine_nfa(nfa);
-    minimal_dfa(dfa);
-    return dfa;
+void simulate_min(const std::shared_ptr <automata>& nfa){
+    std::vector<std::vector <bool>> simulate_matrix;
+    nfa->create_simulate_matrix(simulate_matrix);
+    nfa->minimal_sim(simulate_matrix);
 }
 
 void symetric_fragment(std::vector<std::vector<bool>>& omega_matrix){
     for (int i = 0; i < omega_matrix.size(); i++){
         if (omega_matrix[i][i] == 0){
-            std::cout << "NOPE!!!!!"<< std::endl;
-            exit(-5);
+            std::cerr << "Omega matrix is not reflexive" << std::endl;
+            exit(-1);
         }
+
         for (int j = 0; j < omega_matrix[i].size(); j++){
             if (not omega_matrix[i][j]){
                 omega_matrix[j][i] = false;
             }
         }
     }
-}
-
-void simulate_min(const std::shared_ptr <automata>& nfa){
-    std::vector<std::vector <bool>> simulate_matrix;
-    nfa->create_simulate_matrix(simulate_matrix);
-    nfa->minimal_sim(simulate_matrix);
 }
 
 std::shared_ptr<automata> rezidual_auto(const std::shared_ptr <automata>& nfa){
@@ -164,7 +163,7 @@ void insert_pow_set(const std::shared_ptr <power_element>& adding,
                     std::vector <std::shared_ptr<power_element>>& power_set){
     for (auto& element: power_set){
         if (element->get_trans() == adding->get_trans()){         // if exists a closure with the same transitions
-            element->add_state(*(adding->get_set().begin()));      // add new state to it
+            element->add_state(*(adding->get_set().begin()));      // add new state to it, single state
             return;
         }
     }
@@ -282,14 +281,14 @@ std::vector <std::shared_ptr<ptr_state_vector>>& auto_state::get_trans(){
 }
 
 void auto_state::get_pow_trans(std::vector<ptr_state_vector>& new_trans, std::vector<ptr_state_vector>& helper){
-    for (auto & transition : this->transitions){            // has transition for every symbol
+    for (auto& transition : this->transitions){            // has transition for every symbol
         auto search = *(transition->begin());               // deterministic automata, trans to single state
 
-        if (search->get_value() > helper.size()){
+        if (search->get_value() >= helper.size()){
             std::cerr << "Indexing out of bounds\n" << std::endl;
             exit(-1);
         }
-        new_trans.push_back(helper[search->get_value()]);
+        new_trans.push_back(helper[search->get_value()]);       // pushing in order of the symbols
     }
 }
 
@@ -465,18 +464,19 @@ void auto_state::copy_state(const std::shared_ptr<automata>& copy_auto){
 }
 
 void auto_state::change_coverable(ptr_state_vector& covering_ptr, const std::shared_ptr<auto_state>& change){
-    for (auto& transition : this->transitions){
-        if (transition == nullptr){
+    for (int i = 0; i < this->transitions.size(); i++){
+        if (transitions[i] == nullptr){
             continue;
         }
-        auto search = std::find((*transition).begin(), (*transition).end(), change);
-        if (search == transition->end()){
+        auto search = std::find((*transitions[i]).begin(), (*transitions[i]).end(), change);
+        if (search == transitions[i]->end()){
             continue;
         }
         else{
-            (*transition)[search-transition->begin()] = (*transition)[transition->size()-1];
-            transition->pop_back();
-            transition->insert(transition->end(), covering_ptr.begin(), covering_ptr.end());
+            (*transitions[i])[search-transitions[i]->begin()] = (*transitions[i])[transitions[i]->size()-1];
+            transitions[i]->pop_back();
+
+            this->add_transition_row(i, covering_ptr);
         }
     }
 }
@@ -721,6 +721,25 @@ void automata::add_transition(const std::string& symbol, const std::string& from
     this->state_table[index_from]->add_transition(static_cast<int>(index_symb), this->state_table[index_to]);
 }
 
+void automata::add_transition(int symbol, int from, int to){
+    if (to >= this->state_table.size() or this->state_table[to] == nullptr){
+        std::cerr << "Nonexistent symbol for transition in automata constructor" << std::endl;
+        return;
+    }
+
+    if (from >= this->state_table.size() or this->state_table[from] == nullptr){
+        std::shared_ptr <auto_state> new_state(std::make_shared <auto_state> (from));
+        this->state_table[from] = new_state;
+    }
+
+    if (symbol >= this->alphabet){
+        std::cerr << "Nonexistent symbol for transition in automata constructor" << std::endl;
+        return;
+    }
+
+    this->state_table[from]->add_transition(symbol, this->state_table[to]);
+}
+
 void automata::create_transition(const int symbol, const int from, const int to){
     if (this->state_table[to] == nullptr){
         std::shared_ptr <auto_state> new_state(std::make_shared <auto_state> (to));
@@ -885,9 +904,8 @@ std::string automata::combine_states(std::set<std::shared_ptr<auto_state>> state
 }
 
 
-//TODO undo strings
 void automata::determine_state(automata* old, std::vector <ptr_state_vector>& set_queue,
-                               const ptr_state_vector& current_set, const std::string& current_state){
+                               const ptr_state_vector& current_set, int current_state){
     ptr_state_vector new_state_vect;
     std::set <std::shared_ptr<auto_state>> tmp_set;
     std::string new_value;
@@ -903,7 +921,14 @@ void automata::determine_state(automata* old, std::vector <ptr_state_vector>& se
                 continue;
             }
 
-            tmp_set.insert(search->begin(), search->end());
+            /*for (auto elem: *search){
+                if (not old->dict.state_exists(elem->get_value())){
+                    std::cout << state->get_value() << std::endl;
+                    std::cout << "AHHHH " << elem->get_value() << std::endl;
+                }
+            }*/
+
+            tmp_set.insert(search->begin(), search->end());         // using set for removing duplicates
         }
         new_state_vect.assign(tmp_set.begin(), tmp_set.end());
 
@@ -918,27 +943,39 @@ void automata::determine_state(automata* old, std::vector <ptr_state_vector>& se
             set_queue.push_back(new_state_vect);
         }
 
-        this->add_transition(old->dict.get_alpha_name(i), current_state, new_value);
+        this->add_transition(i, current_state, static_cast<int> (this->dict.get_state_index(new_value)));
     }
 }
 
 std::shared_ptr <automata> automata::determine(){
+    //for (int i= 0; i < this->alphabet; i++){
+     /*   auto tmp = this->state_table[137]->get_trans_row(7);
+        if (tmp != nullptr){
+            for (auto elem: *tmp){
+                std::cout << "To " << elem->get_value() << std::endl;
+                if (not this->dict.state_exists(elem->get_value())){
+                    std::cout << "WTF " << std::endl;
+                }
+            }
+        }*/
+    //}
+
     std::vector <ptr_state_vector> set_queue;
 
-    ptr_state_vector init_vect;
+    ptr_state_vector init_vect;             // get initial states to combine them into one
     for (auto index: this->init_states){
         init_vect.push_back(this->state_table[index]);
     }
     set_queue.push_back(init_vect);
 
-    std::string new_value = this->combine_states(init_vect);
+    std::string new_value = this->combine_states(init_vect);        // new value for the state
     init_vect.clear();
 
-    for (auto index: this->accept_states){
+    for (auto index: this->accept_states){                      // get accept states for checking
         init_vect.push_back(this->state_table[index]);
     }
 
-    std::vector <std::string> alpha(this->alphabet);
+    std::vector <std::string> alpha(this->alphabet);        // get alpha vector for new automata
     for (int i = 0; i < this->alphabet; i++){
         alpha[i] = this->dict.get_alpha_name(i);
     }
@@ -947,16 +984,17 @@ std::shared_ptr <automata> automata::determine(){
     dfa->add_init_state(static_cast <int> (dfa->dict.get_state_index(new_value)));
 
     while (not set_queue.empty()){
-        auto state_set = set_queue.back();
+        auto state_set = set_queue.back();      //get last new state set
         set_queue.pop_back();
 
         new_value = this->combine_states(state_set);
+        int new_index = static_cast <int> (dfa->dict.get_state_index(new_value));
 
-        if (has_intersect(init_vect, state_set)){
-            dfa->add_accept_state(static_cast <int> (dfa->dict.get_state_index(new_value)));
+        if (has_intersect(init_vect, state_set)){           // check for accept states
+            dfa->add_accept_state(new_index);
         }
 
-        dfa->determine_state(this, set_queue, state_set, new_value);
+        dfa->determine_state(this, set_queue, state_set, new_index);
     }
 
     return dfa;
@@ -1011,13 +1049,13 @@ void automata::split_power_state(std::vector <std::shared_ptr <power_element>>& 
 
     for (const auto& closure: previous){
         auto old_set = closure->get_set();
-        if (old_set.size() == 1){
-            std::vector<ptr_state_vector> trans;
+        if (old_set.size() == 1){                           // no need to divide, it is single element
+            std::vector <ptr_state_vector> trans;           // update transition for the single closure
             std::shared_ptr <auto_state> only_element = *old_set.begin();
-            only_element->get_pow_trans(trans, help_table);
+            only_element->get_pow_trans(trans, help_table);         // get it's transition
 
-            closure->set_trans(trans);
-            next.push_back(closure);
+            closure->set_trans(trans);          // update
+            next.push_back(closure);            // push to the next vector
             continue;
         }
 
@@ -1240,8 +1278,8 @@ bool automata::same_alphabets(const std::shared_ptr <automata>& second){
     return this->dict.check_alphabets(second->dict);
 }
 
-void automata::remove_rezidual_state(const std::string& state_value, std::vector <std::string>& covering){
-    int state_index = this->dict.get_state_index(state_value);
+void automata::remove_rezidual_state(const std::string& state_value, std::vector <int>& covering){
+    int state_index = this->dict.get_state_index(state_value);          //remove covered state
     auto state_ptr = this->state_table[state_index];
     this->dict.remove_state(state_index);
 
@@ -1256,8 +1294,7 @@ void automata::remove_rezidual_state(const std::string& state_value, std::vector
     ptr_state_vector covering_ptr;
     int index;
     for (const auto& cov: covering){
-        index = this->dict.get_state_index(cov);
-        covering_ptr.push_back(this->state_table[index]);
+        covering_ptr.push_back(this->state_table[cov]);
     }
 
     for (const auto& state: this->state_table){
@@ -1268,8 +1305,7 @@ void automata::remove_rezidual_state(const std::string& state_value, std::vector
 }
 
 void automata::create_rezidual_state(std::set<std::shared_ptr<auto_state>>& base, const std::shared_ptr <automata>& rezid,
-                                     const std::string& base_value,
-                                     std::vector <std::set<std::shared_ptr<auto_state>>>& all_states){
+                                     int base_value, std::vector <std::set<std::shared_ptr<auto_state>>>& all_states){
     std::set <std::shared_ptr<auto_state>> state_set;
     bool recurse;
 
@@ -1290,25 +1326,27 @@ void automata::create_rezidual_state(std::set<std::shared_ptr<auto_state>>& base
 
         auto state_val = this->combine_states(state_set);
         recurse = rezid->add_state(state_val);
-        rezid->add_transition(this->dict.get_alpha_name(i), base_value, state_val);
+        int new_index = static_cast<int> (rezid->dict.get_state_index(state_val));
+
+        rezid->add_transition(i, base_value, new_index);
+
         // create new state and add trans and recurse
         if (recurse){
             all_states.push_back(state_set);
-            this->create_rezidual_state(state_set, rezid, state_val, all_states);
+            this->create_rezidual_state(state_set, rezid, new_index, all_states);
         }
     }
 }
 
 std::shared_ptr <automata> automata::rezidual(){
-    std::shared_ptr <automata> rezid = std::make_shared <automata> ();
+    std::shared_ptr <automata> rezid = std::make_shared <automata> ();      // create new automata with the same alphabet
     for (int i = 0; i < this->alphabet; i++){
         rezid->add_alphabet(this->dict.get_alpha_name(i));
     }
 
     std::vector <std::set<std::shared_ptr<auto_state>>> new_states;
     std::set<std::shared_ptr<auto_state>> new_init;
-    ptr_state_vector tmp_vec;
-    for (auto init: this->init_states){ // make one init state
+    for (auto init: this->init_states){                     // make one init state
         new_init.insert(this->state_table[init]);
     }
 
@@ -1316,15 +1354,17 @@ std::shared_ptr <automata> automata::rezidual(){
 
     auto init_val = combine_states(new_init);
     rezid->add_init_state_force(init_val);
-    this->create_rezidual_state(new_init, rezid, init_val, new_states);
+    this->create_rezidual_state(new_init, rezid, rezid->dict.get_state_index(init_val), new_states);
 
     std::set <std::shared_ptr<auto_state>> compare_set;
-    std::vector <std::string> covering_vec;
+    std::vector <int> covering_vec;
+    bool remove_cov = false;
     for (const auto& new_state_set: new_states){
         if (new_state_set.size() == 1){
             continue;
         }
 
+        //todo maybe prerobit
         std::vector <std::set<std::shared_ptr<auto_state>>> new_states_copy;
         for (const auto& copy: new_states){
             if (copy == new_state_set){
@@ -1339,8 +1379,10 @@ std::shared_ptr <automata> automata::rezidual(){
             }
             if (std::includes(new_state_set.begin(), new_state_set.end(), elem.begin(), elem.end())){
                 compare_set.insert(elem.begin(), elem.end());
-                this->combine_states(elem);
-                covering_vec.push_back(this->combine_states(elem));
+                auto cov_name = this->combine_states(elem);
+                if (rezid->dict.state_exists(cov_name)){
+                    covering_vec.push_back(rezid->dict.get_state_index(cov_name));
+                }
             }
         }
 

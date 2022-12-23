@@ -52,12 +52,13 @@ void debug(){
    std::set <std::string> fin_state = {"s2", "s3"};
    std::shared_ptr<automata> pokus3(std::make_shared<automata> (state, alphabe, tran, init_state, fin_state));
 
-    auto input_automata = take_input("../input_automata/old/armcNFA_inclTest_10.vtf");
+    auto input_automata = take_input("armcNFA_inclTest (3).vtf");
     if (input_automata == nullptr) {
         exit(-1);
     }
+
     auto rezidual = rezidual_auto(input_automata);
-   std::cout << rezidual->get_state_number() << std::endl;
+   std::cout << "DOne states " << rezidual->get_state_number() << std::endl;
     if (language_equal(rezidual, input_automata)){
         std::cout << "SOME automata" << std::endl;
     }
@@ -87,7 +88,7 @@ int parse_args(int argc, char* argv[], std::string& type, std::string& file){
     return 0;
 }
 
-int run_reduction(const std::string& input_file){
+int run_reduction(const std::string& input_file, const std::string& arg_type){
     auto input_automata = take_input(input_file);
     if (input_automata == nullptr) {
         return -1;
@@ -95,51 +96,61 @@ int run_reduction(const std::string& input_file){
     auto copy = input_automata->copy();
     //input_automata->print();
 
-    auto time_bef_d = clock();
-    auto dfa = det_n_min(input_automata);
-    auto time_aft_d = clock();
+    long time_bef_d;
+    long time_aft_d;
+    bool is_equal;
+    std::cout << std::fixed << input_file << "; " << input_automata->get_state_number() << "; ";
 
-    bool is_equal = language_equal(input_automata, dfa);
-    std::cout << std::fixed << input_file << "; " << input_automata->get_state_number() << "; "
-              << dfa->get_state_number() << "; " << (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC <<
-              "; " << is_equal << "; " << (float) (clock() - time_aft_d) / CLOCKS_PER_SEC;
+    if (arg_type == "min_det" or arg_type == "all"){
+        time_bef_d = clock();
+        auto dfa = det_n_min(input_automata);
+        time_aft_d = clock();
 
+        is_equal = language_equal(input_automata, dfa);
+        std::cout << std::fixed << dfa->get_state_number() << "; " << (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC <<
+                  "; " << is_equal << "; " << (float) (clock() - time_aft_d) / CLOCKS_PER_SEC;
+    }
 
-    /*
-    time_bef_d = clock();
-    simulate_min(copy);
-    time_aft_d = clock();
-    is_equal = language_equal(input_automata, copy);
-    std::cout << std::fixed << "; " << copy->get_state_number() << "; " <<
-                (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC << "; " << is_equal << "; " <<
-                (float) (clock() - time_aft_d) / CLOCKS_PER_SEC << std::endl;*/
+    if (arg_type == "sim" or arg_type == "all"){
+         time_bef_d = clock();
+         simulate_min(copy);
+         time_aft_d = clock();
+         is_equal = language_equal(input_automata, copy);
+         std::cout << std::fixed << copy->get_state_number() << "; " <<
+                     (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC << "; " << is_equal << "; " <<
+                     (float) (clock() - time_aft_d) / CLOCKS_PER_SEC;
+    }
 
-    time_bef_d = clock();
-    auto rez_done = rezidual_auto(copy);
-    time_aft_d = clock();
-    is_equal = language_equal(input_automata, rez_done);
-    std::cout << std::fixed << "; " << rez_done->get_state_number() << "; " <<
-              (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC << "; " << is_equal << "; " <<
-              (float) (clock() - time_aft_d) / CLOCKS_PER_SEC << std::endl;
+    if (arg_type == "rez" or arg_type == "all"){
+        time_bef_d = clock();
+        auto rez_done = rezidual_auto(input_automata);
+        time_aft_d = clock();
+        is_equal = language_equal(input_automata, rez_done);
+        std::cout << std::fixed << rez_done->get_state_number() << "; " <<
+                  (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC << "; " << is_equal << "; " <<
+                  (float) (clock() - time_aft_d) / CLOCKS_PER_SEC;
+    }
+    std::cout << std::endl;
+
     return 0;
 }
 
-void run_all(){
+void run_all(const std::string& arg_type){
     std::string base = "armcNFA_inclTest (";
     int index = 1;
     int error = 0;
     while (not error) {
         std::string file = base + std::to_string(index) + ").vtf";
-        error = run_reduction(file);
+        error = run_reduction(file, arg_type);
         index++;
     }
 }
 
-//usage: ./automata {-t min_det}  [--file]
+//usage: ./automata {-t min_det/sim/rez/all}  [--file]
 int main(int argc, char* argv[]) {
     if (0){
-        run_all();
-        //debug();
+        //run_all();
+        debug();
         return 0;
     }
 
@@ -149,10 +160,10 @@ int main(int argc, char* argv[]) {
     }
 
     if (arg_file.empty()){
-        run_all();
+        run_all(arg_type);
     }
     else{
-        if (run_reduction(arg_file)){
+        if (run_reduction(arg_file, arg_type)){
             std::cerr << "Couldn't parse automata form the input file\n";
         }
     }

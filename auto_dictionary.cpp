@@ -72,6 +72,8 @@ std::string auto_dictionary::get_state_name(const unsigned int index){
         return _index_name_state[index];
     }
 
+    std::cout << max_index << std::endl;
+    //this->print_vec();
     std::cerr << "Indexing out of bounds" << std::endl;
     exit(-1);
 }
