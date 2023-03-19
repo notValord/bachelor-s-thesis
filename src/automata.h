@@ -11,10 +11,9 @@
 // Defining epsilon transition and dead state as constants
 #define EPS "eps"
 #define DEAD "D"
+#define SAVE_DIR "./result_out"
 
 #include <string>
-#include <sstream>
-#include <iostream>
 #include <vector>
 #include <unordered_map>
 #include <array>
@@ -22,10 +21,11 @@
 #include <memory>
 #include <set>
 #include <list>
-#include <cstring>
+#include <fstream>
+#include <filesystem>
 
 #include "auto_dictionary.h"
-
+#include "auto_stats.h"
 
 class auto_state;
 class automata;
@@ -34,11 +34,18 @@ class power_element;
 using ptr_state_vector = std::vector<std::shared_ptr<auto_state>>;
 
 
+bool sat_anticahin(const std::shared_ptr <automata>& sat, const std::shared_ptr <automata>& orig);
+
+bool sat_equal(const std::shared_ptr <automata>& sat, const std::shared_ptr <automata>& orig,
+               const std::shared_ptr <automata_stats>& output);
+
 /// Checks whether two sets of pointers to states have an intersection
 bool has_intersect(ptr_state_vector& first, ptr_state_vector& second);
 
 /// Creates the minimal deterministic automata
 std::shared_ptr <automata> det_n_min(const std::shared_ptr <automata>& nfa);
+
+std::shared_ptr <automata> brzozowski(const std::shared_ptr <automata>& nfa);
 
 /// Replaces all epsilon transitions within the automata, determines it and returns a new one
 std::shared_ptr <automata> determine_nfa(const std::shared_ptr <automata>&);
@@ -167,7 +174,6 @@ class auto_state{
 //                  alphabet, initial and accept states of the automata
 class automata{
     private:
-
     std::vector <std::shared_ptr <auto_state>> state_table;
     int alphabet = 0;
     std::vector <int> init_states;
@@ -218,11 +224,14 @@ class automata{
 
         int get_alphabet() const;
         int get_init();
+        std::vector <int>& get_init_vec();
         unsigned long get_state_number();
 
         bool is_final(const int& state);
+        bool is_product_final(const std::set <int>& check);
 
         int get_next_state(const int& symbol, const int& state);
+        std::vector <int> get_next_vec(const int& symbol, const int& state);
 
     // Method remove_eps_transitions - find epsilon closures for all states and using them replaces all
 //                                 epsilon transitions in the automata
@@ -252,11 +261,21 @@ class automata{
         bool same_alphabets(const std::shared_ptr <automata>& second);
 
         void remove_rezidual_state(const std::string& state_value, std::vector <int>& covering);
-        void create_rezidual_state(std::set<std::shared_ptr<auto_state>>& base, const std::shared_ptr <automata>& rezid,
-                                         int base_value, std::vector <std::set<std::shared_ptr<auto_state>>>& all_states);
+        void create_rezidual_state(const ptr_state_vector & base, const std::shared_ptr <automata>& rezid,
+                                         int base_value, std::vector <ptr_state_vector>& all_states);
+
+        bool is_recurse_coverable(int check_index, const std::vector <ptr_state_vector>& states, int start,
+                                            const std::vector <int>& covering, std::vector <bool>& checked_out, const std::shared_ptr<automata>& rezid);
+
+        void is_coverable(int check_index, const std::vector <ptr_state_vector>& states, int start,
+                         std::vector <bool>& checked_out, const std::shared_ptr<automata>& rezid);
+
         std::shared_ptr <automata> rezidual();
     // Method print - prints the automata
         void print();
+        void save_to_file(const std::string& filename, const std::string& type);
+
+        void find_examples(const std::shared_ptr<automata_stats>& stats);
 };
 
 #endif //BAKALARKA_AUTOMATA_H

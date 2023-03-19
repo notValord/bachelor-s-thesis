@@ -9,7 +9,7 @@
 
 #include "vtf_input.h"
 
-//todo ret neposielat ako referenciu
+
 void parse_line(const std::string& line, std::vector <std::string>& ret){
     bool skip = true;                       // skipping the first word
     std::string token;

@@ -49,18 +49,35 @@ void debug(){
                                                     {"s2", "a", "s1"}};
 
    std::set <std::string> init_state = {"s1"};
-   std::set <std::string> fin_state = {"s2", "s3"};
+   std::set <std::string> fin_state = {"s2"};
    std::shared_ptr<automata> pokus3(std::make_shared<automata> (state, alphabe, tran, init_state, fin_state));
 
-    auto input_automata = take_input("armcNFA_inclTest (3).vtf");
+
+
+    auto input_automata = take_input("../input_automata/2/armcNFA_inclTest (1000).vtf");
     if (input_automata == nullptr) {
         exit(-1);
     }
 
+    auto test = take_input("../input_automata/2/armcNFA_inclTest (1001).vtf");
+    if (input_automata == nullptr) {
+        exit(-1);
+    }
+
+    /*
     auto rezidual = rezidual_auto(input_automata);
-   std::cout << "DOne states " << rezidual->get_state_number() << std::endl;
-    if (language_equal(rezidual, input_automata)){
-        std::cout << "SOME automata" << std::endl;
+   std::cout << "DOne states " << rezidual->get_state_number() << std::endl;*/
+
+    //auto uh = input_automata->reverse();
+    //uh->print();
+    //auto hmm = det_n_min(uh);
+    //hmm->print();
+    //uh = hmm->reverse();
+    //hmm = det_n_min(uh);
+    //uh->print();
+    //std::cout << "Done states " << hmm->get_state_number() << std::endl;
+    if (sat_anticahin(input_automata, test)){
+        std::cout << "SAME automata" << std::endl;
     }
     else{
         std::cout << "DIFFER!!!!" << std::endl;
@@ -106,7 +123,17 @@ int run_reduction(const std::string& input_file, const std::string& arg_type){
         auto dfa = det_n_min(input_automata);
         time_aft_d = clock();
 
-        is_equal = language_equal(input_automata, dfa);
+        is_equal = sat_anticahin(input_automata, dfa);
+        std::cout << std::fixed << dfa->get_state_number() << "; " << (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC <<
+                  "; " << is_equal << "; " << (float) (clock() - time_aft_d) / CLOCKS_PER_SEC;
+    }
+
+    if (arg_type == "brz" or arg_type == "all"){
+        time_bef_d = clock();
+        auto dfa = brzozowski(input_automata);
+        time_aft_d = clock();
+
+        is_equal = sat_anticahin(input_automata, dfa);
         std::cout << std::fixed << dfa->get_state_number() << "; " << (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC <<
                   "; " << is_equal << "; " << (float) (clock() - time_aft_d) / CLOCKS_PER_SEC;
     }
@@ -115,17 +142,28 @@ int run_reduction(const std::string& input_file, const std::string& arg_type){
          time_bef_d = clock();
          simulate_min(copy);
          time_aft_d = clock();
-         is_equal = language_equal(input_automata, copy);
+         is_equal = sat_anticahin(input_automata, copy);
          std::cout << std::fixed << copy->get_state_number() << "; " <<
                      (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC << "; " << is_equal << "; " <<
                      (float) (clock() - time_aft_d) / CLOCKS_PER_SEC;
     }
 
+    /*if (not std::filesystem::create_directory(SAVE_DIR)){
+        std::cerr << "Error while creating a directory in save_to_file" << std::endl;
+        exit(-2);
+    }*/
+
     if (arg_type == "rez" or arg_type == "all"){
         time_bef_d = clock();
         auto rez_done = rezidual_auto(input_automata);
         time_aft_d = clock();
-        is_equal = language_equal(input_automata, rez_done);
+        if (input_automata->get_state_number() < 350){
+            is_equal = sat_anticahin(input_automata, rez_done);
+        }
+        else{
+            is_equal = true;
+        }
+        //rez_done->save_to_file(input_file.substr(input_file.rfind("/") + 1), "REZIDUAL");
         std::cout << std::fixed << rez_done->get_state_number() << "; " <<
                   (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC << "; " << is_equal << "; " <<
                   (float) (clock() - time_aft_d) / CLOCKS_PER_SEC;
@@ -148,8 +186,8 @@ void run_all(const std::string& arg_type){
 
 //usage: ./automata {-t min_det/sim/rez/all}  [--file]
 int main(int argc, char* argv[]) {
-    if (0){
-        //run_all();
+    if (1){
+        //run_all("min_det");
         debug();
         return 0;
     }

@@ -7,8 +7,6 @@
 
 
 /*TODO pouzivat viac std::move kde sa da, pozret ako sa prekladaju veci na https://godbolt.org/
- * TODO nahradit stringy slovnikmi, nahradit sety vectormi + mozno vlastna sprava pamata
- * TODO peto profilovat python a proovnat
  * */
 
 #include <iostream>
@@ -33,15 +31,25 @@ bool has_intersect(ptr_state_vector& first, ptr_state_vector& second){
     return false;
 }
 
+std::shared_ptr <automata> brzozowski(const std::shared_ptr <automata>& nfa){
+    auto rev = nfa->reverse();
+    auto dfa = determine_nfa(rev);
+    std::cout << dfa->get_state_number() << "; ";
+    rev = dfa->reverse();
+    dfa = determine_nfa(rev);
+    return dfa;
+}
+
 
 std::shared_ptr <automata> det_n_min(const std::shared_ptr <automata>& nfa){
     auto dfa = determine_nfa(nfa);
+    //std::cout << "After det " << dfa->get_state_number() << std::endl;
     minimal_dfa(dfa);
     return dfa;
 }
 
 std::shared_ptr <automata> determine_nfa(const std::shared_ptr <automata>& nfa){
-    //nfa->remove_eps_transitions();
+    nfa->remove_eps_transitions();
     auto dfa = nfa->determine();
     return dfa;
 }
@@ -100,6 +108,7 @@ void symetric_fragment(std::vector<std::vector<bool>>& omega_matrix){
 std::shared_ptr<automata> rezidual_auto(const std::shared_ptr <automata>& nfa){
     auto reverse_nfa = nfa->reverse();
     auto rev_dfa = determine_nfa(reverse_nfa);
+    std::cout << "After rev " << rev_dfa->get_state_number() << std::endl;
     auto rez_prepare = rev_dfa->reverse();
     return rez_prepare->rezidual();
 }
@@ -820,8 +829,8 @@ int automata::get_next_state(const int& symbol, const int& state){
         auto next = this->state_table[state]->get_next(symbol);
 
         if (next == nullptr){
-            std::cerr << "There isn't any next state in get_next_state" << std::endl;
-            exit(-1);
+            //std::cerr << "There isn't any next state in get_next_state" << std::endl;
+            return -1;
         }
         return next->get_value();
     }
@@ -1304,27 +1313,30 @@ void automata::remove_rezidual_state(const std::string& state_value, std::vector
     //vsetky prechody do tohto stavu sa presunu do stavov co ho pokryvaju
 }
 
-void automata::create_rezidual_state(std::set<std::shared_ptr<auto_state>>& base, const std::shared_ptr <automata>& rezid,
-                                     int base_value, std::vector <std::set<std::shared_ptr<auto_state>>>& all_states){
-    std::set <std::shared_ptr<auto_state>> state_set;
+void automata::create_rezidual_state(const ptr_state_vector& base, const std::shared_ptr <automata>& rezid,
+                                     int base_value, std::vector <ptr_state_vector>& all_states){
+    ptr_state_vector state_vec;
+    std::set <std::shared_ptr<auto_state>> tmp_set;
     bool recurse;
 
     for (int i = 0; i < this->alphabet; i++){
-        state_set.clear();
+        tmp_set.clear();
+        state_vec.clear();
 
         for (const auto& ptr_state: base){
             auto row_ptr = ptr_state->get_trans_row(i);
             if (row_ptr == nullptr){
                 continue;
             }
-            state_set.insert(row_ptr->begin(), row_ptr->end());
+            tmp_set.insert(row_ptr->begin(), row_ptr->end());
         }
-
-        if (state_set.empty()){
+        if (tmp_set.empty()){
             continue;
         }
 
-        auto state_val = this->combine_states(state_set);
+        state_vec.assign(tmp_set.begin(), tmp_set.end());
+
+        auto state_val = this->combine_states(state_vec);
         recurse = rezid->add_state(state_val);
         int new_index = static_cast<int> (rezid->dict.get_state_index(state_val));
 
@@ -1332,9 +1344,111 @@ void automata::create_rezidual_state(std::set<std::shared_ptr<auto_state>>& base
 
         // create new state and add trans and recurse
         if (recurse){
-            all_states.push_back(state_set);
-            this->create_rezidual_state(state_set, rezid, new_index, all_states);
+            all_states.push_back(state_vec);
+            this->create_rezidual_state(state_vec, rezid, new_index, all_states);
         }
+    }
+}
+
+bool automata::is_recurse_coverable(int check_index, const std::vector <ptr_state_vector>& states, int start,
+                         const std::vector <int>& covering, std::vector <bool>& checked_out, const std::shared_ptr<automata>& rezid){
+    auto check = states[check_index];
+    std::set <std::shared_ptr<auto_state>> tmp_set;
+    std::vector <std::shared_ptr<auto_state>> compare_vec;
+    std::vector <int> covers;
+
+    for (int k = start; k < covering.size(); k++){
+        int i = covering[k];
+        if (checked_out[i]){
+            continue;
+        }
+
+        if (std::includes(check.begin(), check.end(), states[i].begin(), states[i].end())){
+            tmp_set.insert(states[i].begin(), states[i].end());
+            covers.push_back(i);
+        }
+    }
+    //is sorted because of set
+    compare_vec.assign(tmp_set.begin(), tmp_set.end());
+
+    if (compare_vec == check) {
+        if (covers.size() > 2){
+            for (int j = 0; j < covers.size()-1; j++){
+                if (states[covers[j]].size() < 2){      //is sorted
+                    break;
+                }
+                if (checked_out[covers[j]]){
+                    covers[j] = -1;
+                    continue;
+                }
+
+                if (this->is_recurse_coverable(covers[j], states, j+1, covers, checked_out, rezid)){
+                    checked_out[covers[j]] = true;
+                    covers[j] = -1;
+                }
+            }
+        }
+
+        std::vector <int> covering_vec;
+        for (auto index: covers){
+            if (index == -1){
+                continue;
+            }
+            auto name = this->combine_states(states[index]);
+            covering_vec.push_back(rezid->dict.get_state_index(name));
+        }
+
+        rezid->remove_rezidual_state(this->combine_states(check), covering_vec);
+        checked_out[check_index] = true;
+        return true;
+    }
+    return false;
+}
+
+void automata::is_coverable(int check_index, const std::vector <ptr_state_vector>& states, int start,
+                            std::vector <bool>& checked_out, const std::shared_ptr<automata>& rezid){
+    auto check = states[check_index];               // get the state which is being checked
+    std::set <std::shared_ptr<auto_state>> tmp_set;
+    std::vector <std::shared_ptr<auto_state>> compare_vec;
+    std::vector <int> covers;       //vector of indexes which covers the state
+
+    for (int i = start; i < states.size(); i++){
+        if (checked_out[i]){
+            continue;
+        }
+
+        if (std::includes(check.begin(), check.end(), states[i].begin(), states[i].end())){
+            tmp_set.insert(states[i].begin(), states[i].end());
+            covers.push_back(i);
+        }
+    }
+    compare_vec.assign(tmp_set.begin(), tmp_set.end());
+
+    if (compare_vec == check){
+        //check all in the tree structure recursively
+        for (int j = 0; j < covers.size()-1; j++){
+            if (checked_out[covers[j]]){
+                covers[j] = -1;
+                continue;
+            }
+
+            if (this->is_recurse_coverable(covers[j], states, j+1, covers, checked_out, rezid)){
+                checked_out[covers[j]] = true;
+                covers[j] = -1;
+            }
+        }
+
+        std::vector <int> covering_vec;     //indexes of states in automata which are covering the state
+        for (auto index: covers){
+            if (index == -1){
+                continue;
+            }
+            auto name = this->combine_states(states[index]);
+            covering_vec.push_back(rezid->dict.get_state_index(name));
+        }
+
+        rezid->remove_rezidual_state(this->combine_states(check), covering_vec);
+        checked_out[check_index] = true;
     }
 }
 
@@ -1344,53 +1458,39 @@ std::shared_ptr <automata> automata::rezidual(){
         rezid->add_alphabet(this->dict.get_alpha_name(i));
     }
 
-    std::vector <std::set<std::shared_ptr<auto_state>>> new_states;
-    std::set<std::shared_ptr<auto_state>> new_init;
+    std::vector <ptr_state_vector> new_states;
+    ptr_state_vector new_init;
     for (auto init: this->init_states){                     // make one init state
-        new_init.insert(this->state_table[init]);
+        new_init.push_back(this->state_table[init]);
     }
 
     new_states.push_back(new_init);
-
     auto init_val = combine_states(new_init);
     rezid->add_init_state_force(init_val);
-    this->create_rezidual_state(new_init, rezid, rezid->dict.get_state_index(init_val), new_states);
 
-    std::set <std::shared_ptr<auto_state>> compare_set;
-    std::vector <int> covering_vec;
-    bool remove_cov = false;
-    for (const auto& new_state_set: new_states){
-        if (new_state_set.size() == 1){
+    //create all rezidual states
+    this->create_rezidual_state(new_init, rezid, static_cast <int> (rezid->dict.get_state_index(init_val)), new_states);
+
+    std::cout << "Rezid " << rezid->get_state_number() << std::endl;
+
+    std::sort(new_states.begin(), new_states.end(), [](const ptr_state_vector & a, const ptr_state_vector & b){ return a.size() > b.size(); });
+    std::vector <bool> checked_out(new_states.size(), false);       //help vector
+
+    for (auto state: new_states){
+        // vectors needs to be sorted for includes
+        std::sort(state.begin(), state.end());
+    }
+
+    for (int i = 0; i < new_states.size()-1; i++){
+        if (new_states[i].size() == 1){     //it's sorted
+            break;
+        }
+        if (checked_out[i]){
             continue;
         }
 
-        //todo maybe prerobit
-        std::vector <std::set<std::shared_ptr<auto_state>>> new_states_copy;
-        for (const auto& copy: new_states){
-            if (copy == new_state_set){
-                continue;
-            }
-            new_states_copy.push_back(copy);
-        }
-
-        for (auto& elem: new_states_copy){
-            if (elem.empty()){
-                continue;
-            }
-            if (std::includes(new_state_set.begin(), new_state_set.end(), elem.begin(), elem.end())){
-                compare_set.insert(elem.begin(), elem.end());
-                auto cov_name = this->combine_states(elem);
-                if (rezid->dict.state_exists(cov_name)){
-                    covering_vec.push_back(rezid->dict.get_state_index(cov_name));
-                }
-            }
-        }
-
-        if (compare_set == new_state_set){
-            rezid->remove_rezidual_state(this->combine_states(compare_set), covering_vec);
-        }
-        compare_set.clear();
-        covering_vec.clear();
+        //check whether it is coverable, if so remove it from the automata
+        this->is_coverable(i, new_states, i+1, checked_out, rezid);
     }
 
     ptr_state_vector accept_ptr;
@@ -1398,12 +1498,10 @@ std::shared_ptr <automata> automata::rezidual(){
         accept_ptr.push_back(this->state_table[accept]);
     }
 
-    for (const auto& acc_state_set: new_states){
-        ptr_state_vector state;
-        state.assign(acc_state_set.begin(), acc_state_set.end());
+    for (auto& state: new_states){
         if (has_intersect(state, accept_ptr)){
-            if (rezid->dict.state_exists(this->combine_states(acc_state_set))){
-                rezid->add_accept_state(rezid->dict.get_state_index(this->combine_states(acc_state_set)));
+            if (rezid->dict.state_exists(this->combine_states(state))){
+                rezid->add_accept_state(rezid->dict.get_state_index(this->combine_states(state)));
             }
         }
     }
@@ -1439,4 +1537,259 @@ void automata::print(){
     std::cout << "------------------------------------------------------------" << std::endl;
 }
 
+void automata::save_to_file(const std::string& filename, const std::string& type){
+    std::ofstream output(filename);
+    if (output.is_open()){
+        output << "@" << type << std::endl << "%Initial";
+        for (auto init: this->init_states){
+            output << " " << this->dict.get_state_name(init);
+        }
 
+        output << std::endl << "%States";
+        for (int i = 0; i < this->state_table.size(); i++){
+            output << " " << this->dict.get_state_name(i);
+        }
+
+        output << std::endl << "%Final";
+        for (auto init: this->accept_states){
+            output << " " << this->dict.get_state_name(init);
+        }
+
+        output << std::endl << std::endl;
+
+        for (int i = 0; i < this->state_table.size(); i++){
+            auto from = this->dict.get_state_name(i);
+            for (int a = 0; a < this->alphabet; a++){
+                auto curr_symbol = this->dict.get_alpha_name(a);
+                auto row = this->state_table[i]->get_trans_row(a);
+                if (row == nullptr){
+                    continue;
+                }
+
+                for (const auto& to: *row){
+                    output << from << " " << curr_symbol << " " << this->dict.get_state_name(to->get_value()) << std::endl;
+                }
+            }
+        }
+        output.close();
+    }
+    std::cout << std::endl << "File " << filename << " saved" << std::endl;
+}
+
+
+
+void automata::find_examples(const std::shared_ptr<automata_stats>& stats) {
+    std::queue <std::queue<unsigned int>> word_stack;
+    std::queue <int> state_stack;
+    int max_len = static_cast <int> (this->get_state_number());
+
+    for (auto init: this->init_states){
+        state_stack.push(init);
+        word_stack.emplace(std::queue <unsigned int>());
+    }
+
+    std::queue <unsigned int> current_word;
+    int current_state;
+    std::queue <unsigned int> tmp_word;
+
+    while(not state_stack.empty()){
+        current_word = word_stack.front();
+        current_state = state_stack.front();
+        word_stack.pop();
+        state_stack.pop();
+
+        if (current_word.size() > max_len){
+            break;
+        }
+
+        if (this->is_final(current_state)){
+            stats->add_accept(current_word);
+        }
+        else {
+            stats->add_reject(current_word);
+        }
+
+        for (int i = 0; i < this->get_alphabet(); i++){
+            if (this->get_next_state(i, current_state) == -1){
+                tmp_word = current_word;
+                tmp_word.push(i);
+                stats->add_reject(tmp_word);
+                continue;
+            }
+            state_stack.push(this->get_next_state(i, current_state));
+            tmp_word = current_word;
+            tmp_word.push(i);
+            word_stack.push(tmp_word);
+        }
+    }
+
+    stats->set_symbols(this->alphabet);
+}
+
+bool sat_intersect(const std::shared_ptr <automata>& first, const std::shared_ptr <automata>& second,
+                   std::vector <std::queue<unsigned int>>* add){
+    std::vector <std::queue<unsigned int>> word_stack;
+    std::vector <std::pair <int, int>> state_stack;
+    std::set <std::pair <int, int>> gone_through;
+
+    auto start = std::make_pair(first->get_init(), second->get_init());
+    state_stack.push_back(start);
+    word_stack.emplace_back(std::queue <unsigned int>());
+    gone_through.insert(start);
+
+    std::queue <unsigned int> current_word;
+    std::pair <int, int> current_pair;
+    std::queue <unsigned int> tmp_word;
+    bool result = false;
+    unsigned int cnt = 0;
+
+    while(not state_stack.empty()){
+        current_word = word_stack.back();
+        current_pair = state_stack.back();
+        word_stack.pop_back();
+        state_stack.pop_back();
+
+        if (first->is_final(current_pair.first) and second->is_final(current_pair.second)){
+            add->push_back(current_word);
+            cnt++;
+            result = true;
+        }
+
+        if (cnt > 2){
+            break;
+        }
+
+        for (int i = 0; i < first->get_alphabet(); i++){
+            auto new_pair = std::make_pair(first->get_next_state(i, current_pair.first),
+                                           second->get_next_state(i, current_pair.second));
+
+            if (gone_through.find(new_pair) == gone_through.end()){
+                state_stack.push_back(new_pair);
+                tmp_word = current_word;
+                tmp_word.push(i);
+                word_stack.push_back(tmp_word);
+                gone_through.insert(new_pair);
+            }
+        }
+    }
+    return result;
+}
+
+bool sat_equal(const std::shared_ptr <automata>& sat, const std::shared_ptr <automata>& orig,
+               const std::shared_ptr <automata_stats>& output){
+    auto dfa_sat = determine_nfa(sat);
+    auto dfa_orig = determine_nfa(orig);
+    auto sat_comple = dfa_sat->complement();
+    auto orig_comple = dfa_orig->complement();
+
+    if (sat_intersect(dfa_sat, orig_comple, output->get_reject()) or
+        sat_intersect(sat_comple, dfa_orig, output->get_accept())){
+        return false;
+    }
+    return true;
+}
+
+std::vector <int>& automata::get_init_vec(){
+    return this->init_states;
+}
+
+bool automata::is_product_final(const std::set <int>& check){
+    for (auto state: check){
+        if (is_final(state)){
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector <int> automata::get_next_vec(const int& symbol, const int& state){
+    auto row = this->state_table[state]->get_trans_row(symbol);
+    std::vector <int> index_vec;
+    if (row == nullptr){
+        return index_vec;
+    }
+    for (const auto& add_state: *row){
+        index_vec.push_back(add_state->get_value());
+    }
+    return index_vec;
+}
+
+bool check_product(std::vector <std::pair <int, std::set <int>>>& covering, int state, std::set <int>& product){
+    bool result = true;
+    for (int i = 0; i < covering.size(); i++){
+
+        if (covering[i].first != state){
+            continue;
+        }
+        if (covering[i].second == product){
+            return false;
+        }
+        if (std::includes(covering[i].second.begin(), covering[i].second.end(), product.begin(), product.end())){
+            covering.erase(covering.begin()+i);
+            i--;
+            continue;
+        }
+        if (std::includes(product.begin(), product.end(), covering[i].second.begin(), covering[i].second.end())){
+            result = false;
+        }
+    }
+    return result;
+}
+
+bool chain_part(const std::shared_ptr <automata>& first, const std::shared_ptr <automata>& second){
+    std::vector <std::pair <int, std::set <int>>> state_stack;
+    std::vector <std::pair <int, std::set <int>>> gone_through;
+
+    auto init_vec = first->get_init_vec();
+    auto join_init = second->get_init_vec();
+    std::set <int> joined(join_init.begin(), join_init.end());
+
+    std::pair <int, std::set <int>> new_pair;
+
+    for (auto init_state: init_vec){
+        new_pair = std::make_pair(init_state, joined);
+
+        state_stack.push_back(new_pair);
+        gone_through.push_back(new_pair);
+    }
+
+    std::pair <int, std::set <int>> current_pair;
+    std::set <int> product_set;
+
+    while(not state_stack.empty()){
+        current_pair = state_stack.back();
+        state_stack.pop_back();
+
+
+        if (first->is_final(current_pair.first) and not second->is_product_final(current_pair.second)){
+            //std::cout << "FOUND WRONG\n";
+            return true;
+        }
+
+        for (int i = 0; i < first->get_alphabet(); i++){
+            product_set.clear();
+            auto first_row = first->get_next_vec(i, current_pair.first);
+            for (auto state: current_pair.second){
+                auto insert_row = second->get_next_vec(i, state);
+                product_set.insert(insert_row.begin(), insert_row.end());
+            }
+
+            for (auto state: first_row){
+
+                if (check_product(gone_through, state, product_set)){
+                    new_pair = std::make_pair(state, product_set);
+                    state_stack.push_back(new_pair);
+                    gone_through.push_back(new_pair);
+                }
+            }
+        }
+    }
+    return false;
+}
+
+bool sat_anticahin(const std::shared_ptr <automata>& sat, const std::shared_ptr <automata>& orig){
+    if (chain_part(sat, orig) or chain_part(orig, sat)){
+        return false;
+    }
+    return true;
+}
