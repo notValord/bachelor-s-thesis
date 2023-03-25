@@ -1,11 +1,11 @@
 #include "sat.h"
-#include "automata.h"
+#include "auto_language_check.h"
 #include "vtf_input.h"
 
 #define SAT_OUT "../build_sat/result.txt"
 
-std::shared_ptr <automata> build_result(unsigned int states, unsigned int symbols){
-    auto result = std::make_shared<automata>();
+std::shared_ptr <det_auto> build_result(unsigned int states, unsigned int symbols){
+    auto result = std::make_shared <det_auto>();
     for (int i = 0; i < states; i++){
         result->add_state(std::to_string(i));
     }

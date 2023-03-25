@@ -1,4 +1,4 @@
-#include "automata.h"
+#include "auto_language_check.h"
 #include "qbf.h"
 #include "vtf_input.h"
 
@@ -16,17 +16,9 @@ void print_quant_vars(uint from, uint num, bool exist){
         return;
     }
 
-    if (exist){
-        std::cout << "e";
-    }
-    else {
-        std::cout << "a";
-    }
-
     for (uint i = 0; i < num; i++){
         std::cout << " " << from+i;
     }
-    std::cout << " 0" << std::endl;
 }
 
 uint count_bin_zero(uint bin, uint bits){
@@ -44,7 +36,7 @@ uint print_qbf_header(const std::shared_ptr<qbf_stats>& stats){
     uint alpha = stats->get_symbols();
     uint bin = stats->get_bin();
     uint un_var = states * states * alpha + 2 * states;
-    uint acc_var = 0, rej_var = 0, not_var = 0, and_or_var = 0, claus = 0;
+    uint acc_var = 0, rej_var = 0, not_var = 0, and_or_var = 0, claus = 0, dynamic_tsei_vars = 0, all_vars_for_tsei = 0;
 
     for (const auto& word: *stats->get_accept()){
         if (word.empty()){
@@ -57,11 +49,12 @@ uint print_qbf_header(const std::shared_ptr<qbf_stats>& stats){
         claus += static_cast<uint>((pow(2, bin) - states)) * (word.size()+1);        // + valid clauses
     }
 
-    uint sub_zero = 0;
+    /*
+    uint sub_zero = 0;      // pocet nul v binarnom vektore pre vsetky stavy
     for (int i = (1 << bin) - 1; i >= states; i--){
         sub_zero += count_bin_zero(i, bin);
     }
-    uint zero = (1 << (bin-1)) * bin - sub_zero;
+    uint zero = (1 << (bin-1)) * bin - sub_zero;*/
 
     for (const auto& word: *stats->get_reject()){
         if (word.empty()){
@@ -70,8 +63,10 @@ uint print_qbf_header(const std::shared_ptr<qbf_stats>& stats){
         }
         rej_var += (word.size() + 1) * bin;         // new quant vars for a word
 
-        and_or_var += 2*states * bin;       // init + final or gates
-        and_or_var += states*states*word.size() * 2*bin;        // trans or gates
+        //------------------------Basic tseitsen clauses
+        /*
+        and_or_var += 2*states * bin;       // and gates (ig), init + final or gates
+        and_or_var += states*states*word.size() * 2*bin;        // and gates, trans or gates
         and_or_var += static_cast<uint>((pow(2, bin) - states)) * (word.size()+1) * (bin-1);    // valid and gates
 
         and_or_var += 2*states + states*states*word.size();     // + or gates
@@ -79,23 +74,37 @@ uint print_qbf_header(const std::shared_ptr<qbf_stats>& stats){
 
         not_var += 2*(states + zero);          // init + final not gates
         not_var += (states*states + zero*2*states) * word.size();       // trans not gates, end not and not for state vars
-        not_var += (word.size()+1) * sub_zero;      // valid not gates
+        not_var += (word.size()+1) * sub_zero;      // valid not gates*/
 
+
+        //---------------------Dynamic tseisen clauses---------------------
+        dynamic_tsei_vars += 2*states + states*states*word.size();      // single var for each init, final
+        dynamic_tsei_vars += static_cast<uint>((pow(2, bin) - states)) * (word.size()+1);   // and trans clauses
+
+        claus += 2 * states * ((bin+1)+1);       // init + final clauses
+        claus += states*states*word.size() * ((2*bin+1)+1);       // trans clauses
+        claus += static_cast<uint>((pow(2, bin) - states)) * (word.size()+1) * (bin+1);   // valid clauses
+        //-----------------------------------------------------------------
         claus++;        //  add tseitsen result clause
     }
 
-    claus += and_or_var*AND_OR_CLAUS + not_var*NOT_CLAUS;       // tseitsen clauses
+    //claus += and_or_var*AND_OR_CLAUS + not_var*NOT_CLAUS;       // basic tseitsen clauses
     claus++;        // add the clause for setting 0 as initial state
 
     //std::cout << un_var << " " << acc_var << " " << rej_var << " " << and_or_var << " " << not_var << std::endl;
     //std::cout << zero << " " << sub_zero << std::endl;
     std::cout << "c qbf" << std::endl;
     std::cout << "c" << std::endl;
-    std::cout << "p cnf " << un_var + acc_var + rej_var + and_or_var + not_var << " " << claus << std::endl;
+    std::cout << "p cnf " << un_var + acc_var + rej_var + dynamic_tsei_vars << " " << claus << std::endl;
 
-    print_quant_vars(un_var+1, acc_var, true);
+    std::cout << "a";
     print_quant_vars(un_var+acc_var+1, rej_var, false);
-    print_quant_vars(un_var+acc_var+rej_var+1, and_or_var + not_var, true);
+    std::cout << " 0" << std::endl;
+
+    std::cout << "e";
+    print_quant_vars(un_var+1, acc_var, true);
+    print_quant_vars(un_var+acc_var+rej_var+1, dynamic_tsei_vars, true);
+    std::cout << " 0" << std::endl;
 
     return un_var+acc_var+rej_var+1;
 }
@@ -153,8 +162,8 @@ std::shared_ptr <qbf_stats> take_args(int argc, char* argv[], uint &option){
     return input;
 }
 
-std::shared_ptr <automata> build_result(unsigned int states, unsigned int symbols){
-    auto result = std::make_shared<automata>();
+std::shared_ptr <det_auto> build_result(unsigned int states, unsigned int symbols){
+    auto result = std::make_shared <det_auto> ();
     for (int i = 0; i < states; i++){
         result->add_state(std::to_string(i));
     }
@@ -215,8 +224,13 @@ std::shared_ptr <automata> build_result(unsigned int states, unsigned int symbol
 
 int main(int argc, char* argv[]){
     if (0){
-        auto created = build_result(4,2);
-        created->print();
+        auto debug = std::make_shared <qbf_stats> (2,2);
+        std::queue <unsigned int> heh({0});
+        std::queue <unsigned int> eh({1});
+        debug->add_accept(heh);
+        debug->add_reject(eh);
+        uint tsei = print_qbf_header(debug);
+        debug->example_clauses(tsei);
         return 1;
     }
 

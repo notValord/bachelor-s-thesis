@@ -5,8 +5,12 @@
 * Subject: Bachelor's thesis
 */
 
-#include "automata.h"
+#include "auto_language_check.h"
+#include "min_det_auto.h"
+#include "simulation_auto.h"
+#include "rezidual_auto.h"
 #include "vtf_input.h"
+
 #include <iostream>
 #include <ctime>
 
@@ -50,7 +54,7 @@ void debug(){
 
    std::set <std::string> init_state = {"s1"};
    std::set <std::string> fin_state = {"s2"};
-   std::shared_ptr<automata> pokus3(std::make_shared<automata> (state, alphabe, tran, init_state, fin_state));
+   std::shared_ptr<det_auto> pokus3(std::make_shared<det_auto> (state, alphabe, tran, init_state, fin_state));
 
 
 
@@ -140,7 +144,7 @@ int run_reduction(const std::string& input_file, const std::string& arg_type){
 
     if (arg_type == "sim" or arg_type == "all"){
          time_bef_d = clock();
-         simulate_min(copy);
+         simulate_min(std::static_pointer_cast<simul_auto>(copy));
          time_aft_d = clock();
          is_equal = sat_anticahin(input_automata, copy);
          std::cout << std::fixed << copy->get_state_number() << "; " <<
@@ -186,9 +190,9 @@ void run_all(const std::string& arg_type){
 
 //usage: ./automata {-t min_det/sim/rez/all}  [--file]
 int main(int argc, char* argv[]) {
-    if (1){
-        //run_all("min_det");
-        debug();
+    if (0){
+        run_all("all");
+        //debug();
         return 0;
     }
 

@@ -228,10 +228,10 @@ void qbf_stats::example_clauses(uint tsei_start){
             std::cerr << elem << " ";
         }
         std::cerr << std::endl;
-        */
+         */
 
         result.pop_back();
-        tsei_start = tseitsen(result, tsei_start);
+        tsei_start = dynamic_tseitsen(result, tsei_start);
         result.clear();
     }
 }

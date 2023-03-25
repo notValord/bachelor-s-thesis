@@ -2,9 +2,9 @@ TARGET=reduction
 TARGET2=sat_red
 TARGET3=qbf_red
 
-SOURCES := main.cpp vtf_input.cpp automata.cpp auto_dictionary.cpp sat.cpp
-SOURCES2 := sat_main.cpp vtf_input.cpp automata.cpp auto_dictionary.cpp sat.cpp tseitsen.cpp auto_stats.cpp
-SOURCES3 := qbf_main.cpp vtf_input.cpp automata.cpp auto_dictionary.cpp qbf.cpp tseitsen.cpp auto_stats.cpp
+SOURCES := main.cpp vtf_input.cpp automata_base.cpp auto_language_check.cpp det_auto.cpp min_det_auto.cpp rezidual_auto.cpp simulation_auto.cpp auto_dictionary.cpp auto_stats.cpp
+SOURCES2 := sat_main.cpp vtf_input.cpp automata_base.cpp det_auto.cpp auto_language_check.cpp auto_dictionary.cpp sat.cpp tseitsen.cpp auto_stats.cpp
+SOURCES3 := qbf_main.cpp vtf_input.cpp automata_base.cpp det_auto.cpp auto_language_check.cpp auto_dictionary.cpp qbf.cpp tseitsen.cpp auto_stats.cpp
 
 BUILDDIR=build
 BUILDDIR2=build_sat
@@ -20,7 +20,7 @@ OBJECTS3=$(patsubst $(SRCDIR)/%.cpp,$(BUILDDIR3)/%.o,$(addprefix $(SRCDIR)/,$(SO
 
 CXXFLAGS = -O2 -g -std=c++2a
 
-all: dir satdir $(BUILDDIR)/$(TARGET) $(BUILDDIR2)/$(TARGET2)
+all: dir satdir qbfdir $(BUILDDIR)/$(TARGET) $(BUILDDIR2)/$(TARGET2) $(BUILDDIR3)/$(TARGET3)
 
 min: dir $(BUILDDIR)/$(TARGET)
 

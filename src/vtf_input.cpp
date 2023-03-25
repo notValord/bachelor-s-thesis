@@ -24,7 +24,7 @@ void parse_line(const std::string& line, std::vector <std::string>& ret){
     }
 }
 
-void parse_transition(const std::string& line, const std::shared_ptr <automata>& new_auto){
+void parse_transition(const std::string& line, const std::shared_ptr <det_auto>& new_auto){
     std::string token;
     std::vector <std::string> split_vector;
     std::stringstream text(line);
@@ -42,12 +42,12 @@ void parse_transition(const std::string& line, const std::shared_ptr <automata>&
     new_auto->add_transition(split_vector[1], split_vector[0], split_vector[2]);
 }
 
-std::shared_ptr <automata> take_input(const std::string& file){
+std::shared_ptr <det_auto> take_input(const std::string& file){
     std::string tmp;
     std::ifstream input(file);
 
     if (input.is_open()){
-        std::shared_ptr <automata> new_auto(std::make_shared <automata> ());        // empty new automata
+        std::shared_ptr <det_auto> new_auto(std::make_shared <det_auto> ());        // empty new automata
 
         std::vector <std::string> split_vector;
         while (std::getline(input, tmp)){

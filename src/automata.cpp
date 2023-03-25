@@ -16,21 +16,6 @@
 #define DELIM "."
 
 
-bool has_intersect(ptr_state_vector& first, ptr_state_vector& second){
-    std::sort(first.begin(), first.end());
-    std::sort(second.begin(), second.end());
-
-    std::vector <std::shared_ptr <auto_state>> tmp(first.size());
-    std::vector <std::shared_ptr <auto_state>>::iterator last;
-
-    last = std::set_intersection(first.begin(), first.end(), second.begin(), second.end(), tmp.begin());
-
-    if (last - tmp.begin()){
-        return true;
-    }
-    return false;
-}
-
 std::shared_ptr <automata> brzozowski(const std::shared_ptr <automata>& nfa){
     auto rev = nfa->reverse();
     auto dfa = determine_nfa(rev);

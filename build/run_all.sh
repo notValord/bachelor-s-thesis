@@ -2,7 +2,7 @@
 rm -f output.txt
 touch output.txt
 echo "Name; Original states; Det_min states; Time; Equal; Time; Sim states; Time; Equal; Time"
-for f in ../input_automata/2/*; do
+for f in ../input_automata/3/*; do
     #echo "$f"
 	#file=$(basename ${f})
     #echo "$file"

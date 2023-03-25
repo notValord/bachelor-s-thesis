@@ -12,7 +12,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-#include "automata.h"
+#include "det_auto.h"
 
 /**
  * Parses the line from the file for states as well as initial and accept states using string stream
@@ -27,13 +27,13 @@ void parse_line(const std::string& line, std::vector <std::string>& ret);
  * @param line      input line read from the file
  * @param new_auto  pointer to the automata
  */
-void parse_transition(const std::string& line, const std::shared_ptr <automata>& new_auto);
+void parse_transition(const std::string& line, const std::shared_ptr <det_auto>& new_auto);
 
 /**
  * Takes input from the file and parse the data into newly created automata object
  * @param file  file in vtf format with input automata
  * @return      pointer to created automata object, if there was a failure nullptr is returned
  */
-std::shared_ptr <automata> take_input(const std::string& file);
+std::shared_ptr <det_auto> take_input(const std::string& file);
 
 #endif //BAKALARKA_VTF_INPUT_H
