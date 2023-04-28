@@ -41,12 +41,12 @@ for item in "${CONEX[@]}"; do
 done
 echo
 
-touch sat.cnf
-./sat_red --init_header -N $N -S $ALPHA -A "${EX[@]}" -R "${CONEX[@]}" > sat.cnf
+touch nfa_sat.cnf
+
+./sat_red --nfa -N $N -S $ALPHA -A "${EX[@]}" -R "${CONEX[@]}" > nfa_sat.cnf
 
 echo "--[AUTO LOG]--              INITIAL GENERATION DONE"
-./kissat -q sat.cnf > result.txt
-out=$(head -n 1 result.txt)
+out=$( ./MiniSat.14_linux nfa_sat.cnf nfa_result.txt )
 
 while [ $FOUND -eq 0 ]
 do
@@ -54,18 +54,17 @@ do
     N=$((N + 1))
     echo "--[SOLVER LOG]--            COMPUTATION DONE - UNSATISFIABLE, INCREASING NUMBER OF STATES - "$N
 
-    truncate -s 0 sat.cnf
-    ./sat_red --init_header -N $N -S $ALPHA -A "${EX[@]}" -R "${CONEX[@]}" > sat.cnf
+    truncate -s 0 nfa_sat.cnf
+    ./sat_red --nfa -N $N -S $ALPHA -A "${EX[@]}" -R "${CONEX[@]}" > nfa_sat.cnf
 
     echo "--[AUTO LOG]--              INITIAL GENERATION DONE"
-    ./kissat -q sat.cnf > result.txt
-    out=$(head -n 1 result.txt)
+    out=$( ./MiniSat.14_linux nfa_sat.cnf nfa_result.txt )
 
     continue
     fi
 
     echo "--[SOLVER LOG]--            COMPUTATION DONE - SATISFIABLE"
-    out=$(./sat_red --compare -N $N -S $ALPHA "$AUTO_VTF")
+    out=$( ./sat_red --nfa_compare -N $N -S $ALPHA "$AUTO_VTF" )
 
       if [[ "$out" == *"PASS"* ]]; then
         FOUND=1
@@ -92,30 +91,22 @@ do
           done
           echo
 
-          MAX=$(grep -Eo '[0-9]+' "result.txt" | sort -rn | head -n 1)
+          MAX=$(grep -Eo '[0-9]+' "nfa_sat.cnf" | sort -rn | head -n 1)
 
           if [ ! -z "${PRO[*]}" ] && [ ! -z "${CON[*]}" ]; then
             EX=("${EX[@]}" "${PRO[@]}")
             CONEX=("${CONEX[@]}" "${CON[@]}")
-            ./sat_red --add -N $N -S $ALPHA -M $MAX -A "${PRO[@]}" -R "${CON[@]}" >> sat.cnf
+            ./sat_red --nfa_add -N $N -S $ALPHA -M $MAX -A "${PRO[@]}" -R "${CON[@]}" >> nfa_sat.cnf
           elif [ ! -z "${PRO[*]}" ]; then
             EX=("${EX[@]}" "${PRO[@]}")
-            ./sat_red --add -N $N -S $ALPHA -M $MAX -A "${PRO[@]}" >> sat.cnf
+            ./sat_red --nfa_add -N $N -S $ALPHA -M $MAX -A "${PRO[@]}" >> nfa_sat.cnf
           else [ ! -z "${CON[*]}" ]
             CONEX=("${CONEX[@]}" "${CON[@]}")
-            ./sat_red --add -N $N -S $ALPHA -M $MAX -R "${CON[@]}" >> sat.cnf
+            ./sat_red --nfa_add -N $N -S $ALPHA -M $MAX -R "${CON[@]}" >> nfa_sat.cnf
           fi
 
-          sed -i "1d" sat.cnf
-          MAX=$(grep -Eo '[0-9]+' "sat.cnf" | sort -rn | head -n 1)
-          IFS=' ' read -ra lines <<< "$(wc -l sat.cnf)"
-          sed -i "1s/^/p cnf $MAX ${lines[0]} \n/" sat.cnf
-
           echo "--[AUTO LOG]--              ADDITIONAL GENERATION DONE"
-          ./kissat -q sat.cnf > result.txt
-          out=$(head -n 1 result.txt)
-
+          out=$( ./MiniSat.14_linux nfa_sat.cnf nfa_result.txt )
           fi
       sleep 0.5
   done
-

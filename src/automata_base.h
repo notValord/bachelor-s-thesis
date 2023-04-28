@@ -1,6 +1,9 @@
-//
-// Created by vmvev on 3/19/2023.
-//
+/**
+* Project name: Effective reduction of Finite Automata
+* Author: Veronika Molnárová
+* Date: 24.04.2023
+* Subject: Bachelor's thesis - 1st part
+*/
 
 #ifndef BAKALARKA_AUTOMATA_BASE_H
 #define BAKALARKA_AUTOMATA_BASE_H
@@ -13,7 +16,9 @@
 
 #include "auto_dictionary.h"
 
+// constant for "dead" / sink state in the automaton
 #define DEAD "D"
+// constant for the notation of epsilon transitions
 #define EPS "eps"
 
 class automata;
@@ -21,16 +26,33 @@ class auto_state;
 
 using ptr_state_vector = std::vector<std::shared_ptr<auto_state>>;
 
-
+/***
+ * Checks whether the two vectors of automata_state pointers have a common state
+ * @param first     First vector of state pointers
+ * @param second    Second vector of state pointers
+ * @return          True if vectors have an intersection, else False is returned
+ */
 bool has_intersect(ptr_state_vector& first, ptr_state_vector& second);
+
+/***
+ *  Finds the state with the smallest index from the given vector
+ * @param states    Vector of automata states that is going to be searched
+ * @return          Pointer to the state with the smallest index
+ */
 std::shared_ptr <auto_state> get_smallest_state(const ptr_state_vector& states);
 
+/***
+ * Class for representing the state of the automaton
+ */
 class auto_state {
 protected:
+    /** Index of the state in the automaton */
     int index;
+    /** Vector with transitions for each symbol as a vector of pointers to the states the transition is leading to*/
     std::vector<std::shared_ptr<ptr_state_vector>> transitions;
 
 public:
+    /** */
     explicit auto_state(int value){
         this->index = value;
     }
@@ -69,6 +91,10 @@ public:
     void change_coverable(ptr_state_vector& covering_ptr, const std::shared_ptr<auto_state>& change);
 };
 
+
+/***
+ * Class for representing the finite state automaton
+ */
 class automata{
 protected:
     int alphabet = 0;

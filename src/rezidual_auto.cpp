@@ -4,7 +4,6 @@
 
 #include "rezidual_auto.h"
 
-//todo sposob ako premenit nizsiu classu na vyssiu
 std::shared_ptr <det_auto> rezidual_auto(const std::shared_ptr <det_auto>& nfa){
     auto reverse_nfa = nfa->reverse();
     auto rev_dfa = determine_nfa(reverse_nfa);

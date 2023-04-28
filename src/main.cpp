@@ -115,7 +115,6 @@ int run_reduction(const std::string& input_file, const std::string& arg_type){
         return -1;
     }
     auto copy = input_automata->copy();
-    //input_automata->print();
 
     long time_bef_d;
     long time_aft_d;
@@ -129,7 +128,7 @@ int run_reduction(const std::string& input_file, const std::string& arg_type){
 
         is_equal = sat_anticahin(input_automata, dfa);
         std::cout << std::fixed << dfa->get_state_number() << "; " << (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC <<
-                  "; " << is_equal << "; " << (float) (clock() - time_aft_d) / CLOCKS_PER_SEC;
+                  "; " << is_equal << "; " << (float) (clock() - time_aft_d) / CLOCKS_PER_SEC << "; ";
     }
 
     if (arg_type == "brz" or arg_type == "all"){
@@ -139,7 +138,7 @@ int run_reduction(const std::string& input_file, const std::string& arg_type){
 
         is_equal = sat_anticahin(input_automata, dfa);
         std::cout << std::fixed << dfa->get_state_number() << "; " << (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC <<
-                  "; " << is_equal << "; " << (float) (clock() - time_aft_d) / CLOCKS_PER_SEC;
+                  "; " << is_equal << "; " << (float) (clock() - time_aft_d) / CLOCKS_PER_SEC  << "; ";
     }
 
     if (arg_type == "sim" or arg_type == "all"){
@@ -149,7 +148,7 @@ int run_reduction(const std::string& input_file, const std::string& arg_type){
          is_equal = sat_anticahin(input_automata, copy);
          std::cout << std::fixed << copy->get_state_number() << "; " <<
                      (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC << "; " << is_equal << "; " <<
-                     (float) (clock() - time_aft_d) / CLOCKS_PER_SEC;
+                     (float) (clock() - time_aft_d) / CLOCKS_PER_SEC  << "; ";
     }
 
     /*if (not std::filesystem::create_directory(SAVE_DIR)){
@@ -161,12 +160,12 @@ int run_reduction(const std::string& input_file, const std::string& arg_type){
         time_bef_d = clock();
         auto rez_done = rezidual_auto(input_automata);
         time_aft_d = clock();
-        if (input_automata->get_state_number() < 350){
-            is_equal = sat_anticahin(input_automata, rez_done);
-        }
-        else{
-            is_equal = true;
-        }
+        //if (input_automata->get_state_number() < 350){
+        is_equal = sat_anticahin(input_automata, rez_done);
+        //}
+        //else{
+        //    is_equal = true;
+        //}
         //rez_done->save_to_file(input_file.substr(input_file.rfind("/") + 1), "REZIDUAL");
         std::cout << std::fixed << rez_done->get_state_number() << "; " <<
                   (float) (time_aft_d - time_bef_d) / CLOCKS_PER_SEC << "; " << is_equal << "; " <<
@@ -191,8 +190,7 @@ void run_all(const std::string& arg_type){
 //usage: ./automata {-t min_det/sim/rez/all}  [--file]
 int main(int argc, char* argv[]) {
     if (0){
-        run_all("all");
-        //debug();
+        run_reduction("../input_automata/1/armcNFA_inclTest (20).vtf", "rez");
         return 0;
     }
 

@@ -1,3 +1,10 @@
+/**
+* Project name: Effective reduction of Finite Automata
+* Author: Veronika Molnárová
+* Date: 15.04.2023
+* Subject: Bachelor's thesis - 2st part
+*/
+
 #include "auto_stats.h"
 
 automata_stats::automata_stats(int states, int symbols) {
@@ -35,23 +42,23 @@ void automata_stats::add_reject(std::queue <unsigned int>& word){
 
 // warning: not checking whether the format is correct
 void automata_stats::add_words_args(int start, int argc, char* argv[]){
-    if (strcmp(argv[start],"-A") == 0){
+    if (strcmp(argv[start],"-A") == 0){     // words to accept
         for (start++; start < argc; start++){
-            if (strcmp(argv[start],"-R") == 0)
+            if (strcmp(argv[start],"-R") == 0)      // words to reject
                 break;
 
             std::string token;
             std::queue <unsigned int> split_queue;
             std::stringstream word(argv[start]);
 
-            while (std::getline(word, token, ' ')){
+            while (std::getline(word, token, ' ')){     // split words by space
                 split_queue.push(std::stoi(token));          // get vector of transition
             }
-            this->accept.push_back(split_queue);
+            this->accept.push_back(split_queue);        // add into the vector
         }
     }
 
-    if (start == argc){
+    if (start == argc){     // no reject words
         return;
     }
 
@@ -80,7 +87,7 @@ void automata_stats::print(){
     std::cerr << "States = " << this->state_num << ", Alphabet = " << this->alpha_num << std::endl;
     std::cerr << "Accept:" << std::endl;
     for (const auto& word: this->accept){
-        std::queue <unsigned int> tmp = word;
+        std::queue <unsigned int> tmp = word;       // each queue must be copied to avoid changing the member
         for (int i = 0; i < word.size(); i++){
             std::cerr << tmp.front() << " ";
             tmp.pop();
@@ -101,6 +108,9 @@ void automata_stats::print(){
 }
 
 void automata_stats::print_words(){
+    // each symbol of the words is separated by space
+    // words are seperated by commas
+    // accept and reject words are separated by semicolon
     for (auto& word: this->accept){
         while (not word.empty()){
             std::cout << word.front();

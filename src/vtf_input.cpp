@@ -1,10 +1,11 @@
 /**
 * Project name: Effective reduction of Finite Automata
 * Author: Veronika Molnárová
-* Date: 18.10 2022
-* Subject: Bachelor's thesis
+* Date: 18.10.2022
+* Subject: Bachelor's thesis - 1st part
 */
 
+// input directory used when debugging
 #define INPUT_DIRECTORY "../input_automata/1/"
 
 #include "vtf_input.h"
@@ -39,7 +40,7 @@ void parse_transition(const std::string& line, const std::shared_ptr <det_auto>&
     }
 
     new_auto->add_alphabet(split_vector[1]);        // add symbol to alphabet
-    new_auto->add_transition(split_vector[1], split_vector[0], split_vector[2]);
+    new_auto->add_transition(split_vector[1], split_vector[0], split_vector[2]);    // create transition
 }
 
 std::shared_ptr <det_auto> take_input(const std::string& file){

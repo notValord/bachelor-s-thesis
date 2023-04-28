@@ -9,8 +9,6 @@
 #include "auto_stats.h"
 
 class det_auto;
-class rezid_auto;
-class power_element;
 
 std::shared_ptr <det_auto> determine_nfa(const std::shared_ptr <det_auto>&);
 

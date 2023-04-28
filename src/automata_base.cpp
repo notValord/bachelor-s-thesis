@@ -1,11 +1,14 @@
-//
-// Created by vmvev on 3/19/2023.
-//
+/**
+* Project name: Effective reduction of Finite Automata
+* Author: Veronika Molnárová
+* Date: 24.04.2023
+* Subject: Bachelor's thesis - 1st part
+*/
 
 #include "automata_base.h"
 
 bool has_intersect(ptr_state_vector& first, ptr_state_vector& second){
-    std::sort(first.begin(), first.end());
+    std::sort(first.begin(), first.end());      // sorting is required for the set_intersection()
     std::sort(second.begin(), second.end());
 
     std::vector <std::shared_ptr <auto_state>> tmp(first.size());
@@ -13,15 +16,15 @@ bool has_intersect(ptr_state_vector& first, ptr_state_vector& second){
 
     last = std::set_intersection(first.begin(), first.end(), second.begin(), second.end(), tmp.begin());
 
-    if (last - tmp.begin()){
+    if (last - tmp.begin()){        // intersection found
         return true;
     }
     return false;
 }
 
 std::shared_ptr <auto_state> get_smallest_state(const ptr_state_vector& states){
-    int value = (*states.begin())->get_value();
-    std::shared_ptr <auto_state> found = nullptr;
+    int value = (*states.begin())->get_value();         // first value
+    std::shared_ptr <auto_state> found = nullptr;       // pointer for the state
     for (const auto& element: states){
         int tmp = element->get_value();
         if (tmp <= value){

@@ -7,7 +7,7 @@
 std::shared_ptr <det_auto> brzozowski(const std::shared_ptr <det_auto>& nfa){
     auto rev = nfa->reverse();
     auto dfa = determine_nfa(rev);
-    std::cout << dfa->get_state_number() << "; ";
+    //std::cout << dfa->get_state_number() << "; ";
     rev = dfa->reverse();
     dfa = determine_nfa(rev);
     return dfa;
