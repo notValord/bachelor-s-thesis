@@ -1,9 +1,13 @@
-//
-// Created by vmvev on 3/20/2023.
-//
+/**
+* Project name: Effective reduction of Finite Automata
+* Author: Veronika Molnárová
+* Date: 06.05.2023
+* Subject: Bachelor's thesis - 1st part
+*/
 
 #include "det_auto.h"
 
+// delimeter used when concatenating values fo states for determinization
 #define DELIM "."
 
 det_auto::det_auto(const std::set<std::string> &states, const std::set<std::string> &alphabet,
@@ -32,10 +36,10 @@ std::shared_ptr <det_auto> determine_nfa(const std::shared_ptr <det_auto>& nfa){
 }
 
 std::shared_ptr <det_auto> det_auto::copy(){
-    std::shared_ptr <det_auto> copy = std::make_shared <det_auto> (this->alphabet, this->dict); //huh
+    std::shared_ptr <det_auto> copy = std::make_shared <det_auto> (this->alphabet, this->dict);
 
     copy->state_table.resize(this->state_table.size(), nullptr);
-    for (int i = 0; i < this->state_table.size(); i++){
+    for (int i = 0; i < this->state_table.size(); i++){     // add all states
         if (copy->state_table[i] == nullptr){
             std::shared_ptr <auto_state> new_state(std::make_shared <auto_state> (i));
             copy->state_table[i] = new_state;
@@ -57,19 +61,19 @@ std::shared_ptr <det_auto> det_auto::reverse(){
     std::shared_ptr <det_auto> reverse = std::make_shared <det_auto> (this->alphabet, this->dict);
 
     reverse->state_table.resize(this->state_table.size(), nullptr);
-    for (int i = 0; i < this->state_table.size(); i++){
+    for (int i = 0; i < this->state_table.size(); i++){     // add all states
         if (reverse->state_table[i] == nullptr){
             std::shared_ptr <auto_state> new_state(std::make_shared <auto_state> (i));
             reverse->state_table[i] = new_state;
         }
-        this->state_table[i]->reverse_trans(reverse);
+        this->state_table[i]->reverse_trans(reverse);   // reverse transitions
     }
 
-    for (const auto& state: this->init_states){
+    for (const auto& state: this->init_states){         // final states as initial
         reverse->add_accept_state(state);
     }
 
-    for (const auto& state: this->accept_states){
+    for (const auto& state: this->accept_states){       // initial states as final
         reverse->add_init_state(state);
     }
 
@@ -87,7 +91,7 @@ void det_auto::reverse_accept_states(){
     this->accept_states = std::move(new_accept);
 }
 
-//todo bude presunut kopiu alebo idk
+
 std::shared_ptr <det_auto> det_auto::complement(){
     auto comple = this->copy();
 
@@ -101,12 +105,12 @@ std::string det_auto::combine_states(ptr_state_vector states){
         return this->dict.get_state_name((*states.begin())->get_value());
     }
 
-    std::sort(states.begin(), states.end());
+    std::sort(states.begin(), states.end());    // sorting required for uniformity of the created values
     auto first_id = states.back();
     std::string first = this->dict.get_state_name(first_id->get_value());
     states.pop_back();
 
-    while(not states.empty()){
+    while(not states.empty()){      // take states one by one and concatenate
         auto second_id = states.back();
         states.pop_back();
 
@@ -127,7 +131,7 @@ void det_auto::determine_state(det_auto* old, std::vector <ptr_state_vector>& se
         tmp_set.clear();
 
         // gets the new  set of states
-        for (const auto& state: current_set){
+        for (const auto& state: current_set){       // get all states
             auto search = state->get_trans_row(i);
             if (search == nullptr){
                 continue;
@@ -137,14 +141,14 @@ void det_auto::determine_state(det_auto* old, std::vector <ptr_state_vector>& se
         }
         new_state_vect.assign(tmp_set.begin(), tmp_set.end());
 
-        if (new_state_vect.empty()){
+        if (new_state_vect.empty()){        // create sink state
             new_value = DEAD;
         }
         else{
             new_value = old->combine_states(new_state_vect);
         }
 
-        if (this->add_state(new_value)){
+        if (this->add_state(new_value)){            // if state doesn't exist, add for further search
             set_queue.push_back(new_state_vect);
         }
 
@@ -153,7 +157,7 @@ void det_auto::determine_state(det_auto* old, std::vector <ptr_state_vector>& se
 }
 
 void det_auto::recurse_find_all_eps(const ptr_state_vector& search_group, int eps_index, ptr_state_vector& ret){
-    for (const auto& state: search_group){
+    for (const auto& state: search_group){      // for every state in teh closure
         auto new_add = state->get_trans_row(eps_index);
         if (new_add == nullptr){
             return;
@@ -162,10 +166,10 @@ void det_auto::recurse_find_all_eps(const ptr_state_vector& search_group, int ep
         bool end = true;                // no new addition
         ptr_state_vector next_search;
         for (const auto& new_state: (*new_add)){
-            if (std::count(ret.begin(), ret.end(), new_state) == 0){
-                ret.push_back(new_state);
-                next_search.push_back(new_state);
-                end = false;
+            if (std::count(ret.begin(), ret.end(), new_state) == 0){        // if the state wasn't searched
+                ret.push_back(new_state);           // add to the final eps closure
+                next_search.push_back(new_state);   // search for further eps closure
+                end = false;                        // until no new words are found
             }
         }
 
@@ -176,30 +180,30 @@ void det_auto::recurse_find_all_eps(const ptr_state_vector& search_group, int ep
 }
 
 void det_auto::remove_eps_transitions(){
-    if (not this->dict.alpha_exists(EPS)){
+    if (not this->dict.alpha_exists(EPS)){      // no epsilon in the alphabet
         return;
     }
-    int eps_index = static_cast<int>(this->dict.get_alpha_index(EPS));
+    int eps_index = static_cast<int>(this->dict.get_alpha_index(EPS));      // eps index
 
     ptr_state_vector accept_vect;
     for (auto index: this->accept_states){
         accept_vect.push_back(this->state_table[index]);
     }
 
-    for (const auto& state: this->state_table){
+    for (const auto& state: this->state_table){     // for every state with eps transition
         if (not state->has_trans(eps_index)){
             continue;
         }
 
         ptr_state_vector eps_closure;
         ptr_state_vector tmp_set = {state};
-        this->recurse_find_all_eps(tmp_set, eps_index, eps_closure);
+        this->recurse_find_all_eps(tmp_set, eps_index, eps_closure);        // find epsilon closure
 
         if (has_intersect(eps_closure, accept_vect)){
             this->add_accept_state(state->get_value());
         }
 
-        state->replace_eps_trans(eps_closure, eps_index);
+        state->replace_eps_trans(eps_closure, eps_index);           // replace eps transitions with symbol transitions
 
     }
 
@@ -242,7 +246,7 @@ std::shared_ptr <det_auto> det_auto::determine(){
             dfa->add_accept_state(new_index);
         }
 
-        dfa->determine_state(this, set_queue, state_set, new_index);
+        dfa->determine_state(this, set_queue, state_set, new_index);        // determine the state
     }
 
     return dfa;
@@ -276,6 +280,9 @@ void det_auto::find_examples(const std::shared_ptr<automata_stats>& stats) {
 
         if (dfa->is_final(current_state)){
             stats->add_accept(current_word);
+            if (current_word.size() < max_len and not current_word.empty()){
+                max_len = static_cast<int>(current_word.size());
+            }
         }
         else {
             stats->add_reject(current_word);

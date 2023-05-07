@@ -1,13 +1,15 @@
-//
-// Created by vmvev on 3/19/2023.
-//
+/**
+* Project name: Effective reduction of Finite Automata
+* Author: Veronika Molnárová
+* Date: 06.05.2023
+* Subject: Bachelor's thesis - 1st part
+*/
 
 #include "rezidual_auto.h"
 
 std::shared_ptr <det_auto> rezidual_auto(const std::shared_ptr <det_auto>& nfa){
     auto reverse_nfa = nfa->reverse();
     auto rev_dfa = determine_nfa(reverse_nfa);
-    //std::cout << "After rev " << rev_dfa->get_state_number() << std::endl;
     auto rez_prepare = std::static_pointer_cast <rezid_auto> (rev_dfa->reverse());
     return rez_prepare->rezidual();
 }
@@ -27,10 +29,10 @@ rezid_auto::rezid_auto(det_auto& base) {
 void rezid_auto::remove_rezidual_state(const std::string& state_value, std::vector <int>& covering){
     int state_index = this->dict.get_state_index(state_value);          //remove covered state
     auto state_ptr = this->state_table[state_index];
-    this->dict.remove_state(state_index);
+    this->dict.remove_state(state_index);           // remove from dictionary
 
     unsigned int old_id, new_id;
-    while (this->dict.smooth_vector_state(old_id, new_id)){
+    while (this->dict.smooth_vector_state(old_id, new_id)){         // smooth vector
         this->state_table[new_id] = this->state_table[old_id];
         this->state_table[new_id]->set_value(static_cast<int> (new_id));
     }
@@ -38,16 +40,13 @@ void rezid_auto::remove_rezidual_state(const std::string& state_value, std::vect
     this->state_table.pop_back();
 
     ptr_state_vector covering_ptr;
-    int index;
-    for (const auto& cov: covering){
+    for (const auto& cov: covering){        // change vector of ints to pointers
         covering_ptr.push_back(this->state_table[cov]);
     }
 
-    for (const auto& state: this->state_table){
+    for (const auto& state: this->state_table){         // for every state change transitions leading to the state to the vector
         state->change_coverable(covering_ptr, state_ptr);
     }
-    //ziskat vector pointerov
-    //vsetky prechody do tohto stavu sa presunu do stavov co ho pokryvaju
 }
 
 void rezid_auto::create_rezidual_state(const ptr_state_vector& base, const std::shared_ptr <rezid_auto>& rezid,
@@ -96,23 +95,23 @@ bool rezid_auto::is_recurse_coverable(int check_index, const std::vector <ptr_st
     std::vector <int> covers;
 
     for (int k = start; k < covering.size(); k++){
-        int i = covering[k];
+        int i = covering[k];        // get a state from the covering vec
         if (checked_out[i]){
             continue;
         }
 
         if (std::includes(check.begin(), check.end(), states[i].begin(), states[i].end())){
-            tmp_set.insert(states[i].begin(), states[i].end());
+            tmp_set.insert(states[i].begin(), states[i].end());         //could cover
             covers.push_back(i);
         }
     }
     //is sorted because of set
     compare_vec.assign(tmp_set.begin(), tmp_set.end());
 
-    if (compare_vec == check) {
-        if (covers.size() > 2){
+    if (compare_vec == check) {         // covers
+        if (covers.size() > 2){         // if has more than 2 states covering it
             for (int j = 0; j < covers.size()-1; j++){
-                if (states[covers[j]].size() < 2){      //is sorted
+                if (states[covers[j]].size() < 2){      //is sorted, it is a signle state no need to recurse further
                     break;
                 }
                 if (checked_out[covers[j]]){
@@ -132,12 +131,12 @@ bool rezid_auto::is_recurse_coverable(int check_index, const std::vector <ptr_st
             if (index == -1){
                 continue;
             }
-            auto name = this->combine_states(states[index]);
+            auto name = this->combine_states(states[index]);        // get the name of the state
             covering_vec.push_back(rezid->dict.get_state_index(name));
         }
 
         rezid->remove_rezidual_state(this->combine_states(check), covering_vec);
-        checked_out[check_index] = true;
+        checked_out[check_index] = true;        // is covered remove
         return true;
     }
     return false;
@@ -155,18 +154,18 @@ void rezid_auto::is_coverable(int check_index, const std::vector <ptr_state_vect
             continue;
         }
 
-        if (std::includes(check.begin(), check.end(), states[i].begin(), states[i].end())){
-            tmp_set.insert(states[i].begin(), states[i].end());
-            covers.push_back(i);
+        if (std::includes(check.begin(), check.end(), states[i].begin(), states[i].end())){     // if the state could cover
+            tmp_set.insert(states[i].begin(), states[i].end());     // add to set for duplicates
+            covers.push_back(i);            // save the index fo the state
         }
     }
     compare_vec.assign(tmp_set.begin(), tmp_set.end());
 
-    if (compare_vec == check){
+    if (compare_vec == check){          // if it is covering
         //check all in the tree structure recursively
         for (int j = 0; j < covers.size()-1; j++){
             if (checked_out[covers[j]]){
-                covers[j] = -1;
+                covers[j] = -1;     // set to invalid as it is also covered states
                 continue;
             }
 
@@ -182,11 +181,11 @@ void rezid_auto::is_coverable(int check_index, const std::vector <ptr_state_vect
                 continue;
             }
             auto name = this->combine_states(states[index]);
-            covering_vec.push_back(rezid->dict.get_state_index(name));
+            covering_vec.push_back(rezid->dict.get_state_index(name));      // get the vector of states covering the state
         }
 
         rezid->remove_rezidual_state(this->combine_states(check), covering_vec);
-        checked_out[check_index] = true;
+        checked_out[check_index] = true;            // set the state to checked out
     }
 }
 
@@ -209,8 +208,7 @@ std::shared_ptr <det_auto> rezid_auto::rezidual(){
     //create all rezidual states
     this->create_rezidual_state(new_init, rezid, static_cast <int> (rezid->dict.get_state_index(init_val)), new_states);
 
-    //std::cout << "Rezid " << rezid->get_state_number() << std::endl;
-
+    // sorting is required for optimization
     std::sort(new_states.begin(), new_states.end(), [](const ptr_state_vector & a, const ptr_state_vector & b){ return a.size() > b.size(); });
     std::vector <bool> checked_out(new_states.size(), false);       //help vector
 
@@ -220,10 +218,10 @@ std::shared_ptr <det_auto> rezid_auto::rezidual(){
     }
 
     for (int i = 0; i < new_states.size()-1; i++){
-        if (new_states[i].size() == 1){     //it's sorted
+        if (new_states[i].size() == 1){     //it's sorted, we can stop when a single element state is found
             break;
         }
-        if (checked_out[i]){
+        if (checked_out[i]){        // already searched states
             continue;
         }
 

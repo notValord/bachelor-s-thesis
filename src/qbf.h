@@ -38,6 +38,12 @@ public:
     qbf_stats(int states, int symbols);
 
     /***
+    * Constructor from the automata_stats
+    * @param base         the base stats
+    */
+    explicit qbf_stats(automata_stats base);        // can't convert cuz of additional attribute
+
+    /***
      * Getter of state_bin
      * @return  the size of binary vector
      */

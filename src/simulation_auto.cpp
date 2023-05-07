@@ -1,6 +1,9 @@
-//
-// Created by vmvev on 3/19/2023.
-//
+/**
+* Project name: Effective reduction of Finite Automata
+* Author: Veronika Molnárová
+* Date: 06.05.2023
+* Subject: Bachelor's thesis - 1st part
+*/
 
 #include "simulation_auto.h"
 
@@ -42,9 +45,9 @@ void simul_auto::minimal_sim(std::vector<std::vector<bool>>& omega_matrix){
     for (int i = 0; i < omega_matrix.size(); i++){
         state_vec.clear();
         for (int j = i; j < omega_matrix[i].size(); j++){
-            if (omega_matrix[i][j]){
+            if (omega_matrix[i][j]){        // is simulated
                 if (i != j){
-                    std::fill(omega_matrix[j].begin(), omega_matrix[j].end(), false);
+                    std::fill(omega_matrix[j].begin(), omega_matrix[j].end(), false);   // set the row to false
                 }
                 state_vec.push_back(this->state_table[j]);
             }
@@ -52,45 +55,43 @@ void simul_auto::minimal_sim(std::vector<std::vector<bool>>& omega_matrix){
         if (not state_vec.empty()){
             tmp_states.push_back(state_vec);
         }
-        for (const auto& element: state_vec){
+        for (const auto& element: state_vec){       // set every state to the set it belongs to
             help_table[element->get_value()] = state_vec;
         }
     }
 
     for (auto& closure: tmp_states){
         if (closure.size() == 1){
-            (*closure.begin())->check_simul_trans(help_table);
+            (*closure.begin())->check_simul_trans(help_table);      // check the transitions
         }
         else{
-            //najsi najmensi stav aka prvy stav zkombinuj hodnoty nastav oprav
-            std::string new_value = combine_states(closure);
+            std::string new_value = combine_states(closure);        // create a single state
 
-            std::shared_ptr <auto_state> stays = *closure.begin();        // change value in dict
+            std::shared_ptr <auto_state> stays = *closure.begin();        // change value in dict, always take the first state
             this->dict.change_state_name(stays->get_value(), new_value);
 
             stays->check_simul_trans(help_table);
 
             for (const auto& state: closure) {
-                if (state != stays) {
+                if (state != stays) {           // remove all states that aren't kept
                     this->dict.remove_state(state->get_value());        // remove state from dict and automata
                     state->clear_trans();
                     this->state_table[state->get_value()] = nullptr;
 
 
                     auto search = std::find(this->accept_states.begin(), this->accept_states.end(), state->get_value());
-                    if (search != this->accept_states.end()) {
+                    if (search != this->accept_states.end()) {      // remove from accept state
                         this->accept_states.erase(search);
-                        if (std::count(this->accept_states.begin(), this->accept_states.end(), stays->get_value()) ==
-                            0) {
-                            this->accept_states.push_back(stays->get_value());
+                        if (std::count(this->accept_states.begin(), this->accept_states.end(), stays->get_value()) == 0) {
+                            this->accept_states.push_back(stays->get_value());      // if wasn't in accept states then add
                         }
                     }
 
                     search = std::find(this->init_states.begin(), this->init_states.end(), state->get_value());
                     if (search != this->init_states.end()) {
-                        this->init_states.erase(search);          //could be expensice
+                        this->init_states.erase(search);          //could be expensive
                         if (std::count(this->init_states.begin(), this->init_states.end(), stays->get_value()) == 0) {
-                            this->init_states.push_back(stays->get_value());
+                            this->init_states.push_back(stays->get_value());        // if had initial then add
                         }
                     }
                 }
@@ -99,7 +100,7 @@ void simul_auto::minimal_sim(std::vector<std::vector<bool>>& omega_matrix){
     }
 
     unsigned int old_id, new_id;
-    while (this->dict.smooth_vector_state(old_id, new_id)){
+    while (this->dict.smooth_vector_state(old_id, new_id)){     // smooth vector
         this->state_table[new_id] = this->state_table[old_id];
         this->state_table[new_id]->set_value(static_cast<int> (new_id));
 
@@ -125,21 +126,17 @@ void simul_auto::create_simulate_matrix(std::vector<std::vector<bool>>& ret_matr
 
     std::vector<bool> row(state_num, true);
     std::vector<std::vector<bool>>omega_matrix(state_num, row);
-    std::vector <std::pair <int, int>> gone_stack;  // mozno lepsie ako set
+    std::vector <std::pair <int, int>> gone_stack;
     this->init_omega_matrix(omega_matrix, gone_stack);
 
     std::shared_ptr <auto_state> tmp_state = nullptr;
 
     while (not gone_stack.empty()){
-        auto curr_pair = gone_stack.back();
+        auto curr_pair = gone_stack.back();     // get the state
         gone_stack.pop_back();
-        //std::cout << "I= " << curr_pair.first << " J= " << curr_pair.second << std::endl;
 
         for (int symbol = 0; symbol < this->alphabet; symbol++){
-            //std::cout << "Sym= " << symbol << std::endl;
-
-            //todo get state?
-            tmp_state = rev_auto->get_state(curr_pair.second);
+            tmp_state = rev_auto->get_state(curr_pair.second);      // get previous state
             auto trans_rev_k = tmp_state->get_trans_row(symbol);
             if (trans_rev_k == nullptr){
                 continue;
@@ -148,8 +145,7 @@ void simul_auto::create_simulate_matrix(std::vector<std::vector<bool>>& ret_matr
 
             for (const auto& k: *trans_rev_k){
                 int k_index = k->get_value();
-                //std::cout << "K= " << k_index << std::endl;
-                curr_card_table[k_index][curr_pair.first]--;
+                curr_card_table[k_index][curr_pair.first]--;        // remove transition
 
                 if (curr_card_table[k_index][curr_pair.first] == 0){
                     tmp_state = rev_auto->get_state(curr_pair.first);
@@ -162,7 +158,6 @@ void simul_auto::create_simulate_matrix(std::vector<std::vector<bool>>& ret_matr
                         int remove_index = remove_state->get_value();
 
                         if (omega_matrix[remove_index][k_index]){
-                            //std::cout << "Removing m= " << remove_index << " - k=" << k_index  <<std::endl;
                             omega_matrix[remove_index][k_index] = false;
                             gone_stack.emplace_back(std::make_pair(remove_index, k_index));
                         }
@@ -184,7 +179,7 @@ void simul_auto::init_card_tables(std::vector <std::vector <std::vector<int>>>& 
         std::vector <std::vector <int>> column(state_num);
 
         for (int j = 0; j < state_num; j++){
-            int card = this->state_table[j]->get_trans_card(i);
+            int card = this->state_table[j]->get_trans_card(i);     // get number of transitions
 
             std::vector <int> row(state_num);
             std::fill(row.begin(), row.end(), card);
@@ -200,7 +195,7 @@ void simul_auto::init_omega_matrix(std::vector<std::vector<bool>>& omega_matrix,
                                  std::vector <std::pair <int, int>>& gone_stack){
     for (int i = 0; i < this->state_table.size(); i++){
         if (std::count(this->accept_states.begin(), this->accept_states.end(), i) == 0){
-            for (auto fin: this->accept_states){
+            for (auto fin: this->accept_states){        // final and non-final pairs
                 if (not omega_matrix[fin][i]){
                     continue;
                 }
@@ -209,7 +204,7 @@ void simul_auto::init_omega_matrix(std::vector<std::vector<bool>>& omega_matrix,
             }
         }
 
-        for (int j = 0; j < this->state_table.size(); j++){
+        for (int j = 0; j < this->state_table.size(); j++){     // checking for transitions
             if (omega_matrix[i][j] && this->state_table[j]->not_under_simulate(this->state_table[i])){
                 omega_matrix[i][j] = false;
                 gone_stack.emplace_back(i, j);

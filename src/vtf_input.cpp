@@ -44,6 +44,11 @@ void parse_transition(const std::string& line, const std::shared_ptr <det_auto>&
 }
 
 std::shared_ptr <det_auto> take_input(const std::string& file){
+    if (!std::filesystem::is_regular_file(file)){
+        std::cerr << "Failed to open an input file" << std::endl;
+        return nullptr;
+    }
+
     std::string tmp;
     std::ifstream input(file);
 

@@ -28,6 +28,12 @@ class sat_stats : public automata_stats{
      */
     sat_stats(int state, int symbols);
 
+     /***
+      * Convert constructor from the automata_stats
+      * @param base         the base stats
+      */
+    explicit sat_stats(automata_stats& base);      //convert constructor
+
     /***
      * Generates the clauses for determinism of the automaton
      *  -1 or -2    and     -1 or -3    and     -2 or -3

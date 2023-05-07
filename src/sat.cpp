@@ -10,6 +10,13 @@ sat_stats::sat_stats(int states, int symbols) : automata_stats(states, symbols) 
     ;
 }
 
+sat_stats::sat_stats(automata_stats& base) {
+    this->state_num = base.get_states();
+    this->alpha_num = base.get_symbols();
+    this->accept = *base.get_accept();
+    this->reject = *base.get_reject();
+}
+
 void sat_stats::determine_clauses() const{
     for (int index = 1; index <= this->alpha_num * this->state_num * this->state_num; index += this->state_num){   // every row
         for (int j = 0; j < this->state_num; j++){                  // elements in row
@@ -179,8 +186,6 @@ void sat_stats::recurse_nfa_tseitsen_reject(const std::string& base, unsigned in
 }
 
 void sat_stats::example_nfa_clauses(unsigned int max_index) {
-    std::cout << this->state_num * this->state_num * this->alpha_num + 1 << " 0\n"; // set initial state 1
-
     for(auto word: this->accept) {
         std::vector<int> expression;
         std::vector<int> result;

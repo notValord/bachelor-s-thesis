@@ -10,6 +10,14 @@ qbf_stats::qbf_stats(int states, int symbols) : automata_stats(states, symbols) 
     this->state_bin = ceil(log2(states));
 }
 
+qbf_stats::qbf_stats(automata_stats base){
+    this->state_num = base.get_states();
+    this->alpha_num = base.get_symbols();
+    this->accept = *base.get_accept();
+    this->reject = *base.get_reject();
+    this->state_bin = ceil(log2(base.get_states()));
+}
+
 unsigned int qbf_stats::get_bin() const{
     return this->state_bin;
 }

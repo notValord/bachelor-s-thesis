@@ -1,7 +1,7 @@
 /**
 * Project name: Effective reduction of Finite Automata
 * Author: Veronika Molnárová
-* Date: 24.04.2023
+* Date: 06.54.2023
 * Subject: Bachelor's thesis - 1st part
 */
 
@@ -55,11 +55,11 @@ void auto_state::print(){
 }
 
 bool auto_state::has_trans(int value){
-    if (value >= this->transitions.size()){
+    if (value >= this->transitions.size()){     // out of range
         return false;
     }
     else{
-        if (this->transitions[value] == nullptr){
+        if (this->transitions[value] == nullptr){       // no transition
             return false;
         }
         return true;
@@ -78,7 +78,7 @@ std::shared_ptr<ptr_state_vector> auto_state::get_trans_row(int symbol){
     if (this->transitions.size() > symbol){
         return this->transitions[symbol];
     }
-    else{
+    else{                       // out of range
         return nullptr;
     }
 }
@@ -88,20 +88,20 @@ std::vector <std::shared_ptr<ptr_state_vector>>& auto_state::get_trans(){
 }
 
 void auto_state::add_transition(int symbol, const std::shared_ptr <auto_state>& trans_to){
-    if (symbol >= this->transitions.size()){
+    if (symbol >= this->transitions.size()){            // no vector for this symbol
         this->transitions.resize(symbol+1, nullptr);
         std::shared_ptr<ptr_state_vector> new_trans = std::make_shared<ptr_state_vector>();
         new_trans->push_back(trans_to);
 
         this->transitions[symbol] = new_trans;
     }
-    else if (this->transitions[symbol] == nullptr){
+    else if (this->transitions[symbol] == nullptr){     // empty vector for this symbol
         std::shared_ptr<ptr_state_vector> new_trans = std::make_shared<ptr_state_vector>();
         new_trans->push_back(trans_to);
 
         this->transitions[symbol] = new_trans;
     }
-    else{
+    else{               // already existing vector
         if (std::count(this->transitions[symbol]->begin(), this->transitions[symbol]->end(), trans_to)){
             std::cerr << "Trying to add a duplicate transition in add_transition" << std::endl;
             return;
@@ -113,20 +113,20 @@ void auto_state::add_transition(int symbol, const std::shared_ptr <auto_state>& 
 
 
 void auto_state::add_transition_row(int symbol, const ptr_state_vector& new_row){
-    if (symbol >= this->transitions.size()){
+    if (symbol >= this->transitions.size()){            // no vector for this symbol
         this->transitions.resize(symbol+1, nullptr);
         std::shared_ptr<ptr_state_vector> new_trans = std::make_shared<ptr_state_vector>();
         *new_trans = new_row;
 
         this->transitions[symbol] = new_trans;
     }
-    else if (this->transitions[symbol] == nullptr){
+    else if (this->transitions[symbol] == nullptr){         // empty vector for this symbol
         std::shared_ptr<ptr_state_vector> new_trans = std::make_shared<ptr_state_vector>();
         *new_trans = new_row;
 
         this->transitions[symbol] = new_trans;
     }
-    else {
+    else {                  // already existing vector
         for (const auto& elem: new_row){
             if (std::count(this->transitions[symbol]->begin(), this->transitions[symbol]->end(), elem) == 0){
                 this->transitions[symbol]->push_back(elem);
@@ -150,7 +150,7 @@ void auto_state::reverse_trans(const std::shared_ptr <automata>& reverse){
             continue;
         }
 
-        for (const auto& state: *this->transitions[i]){
+        for (const auto& state: *this->transitions[i]){     // reverse transitions
             reverse->create_transition(i, state->index, this->index);
         }
     }
@@ -171,7 +171,7 @@ void auto_state::copy_state(const std::shared_ptr<automata>& copy_auto){
             continue;
         }
 
-        for (const auto& state: *this->transitions[i]){
+        for (const auto& state: *this->transitions[i]){     // copy transitions
             copy_auto->create_transition(i, this->index, state->index);
         }
     }
@@ -179,7 +179,7 @@ void auto_state::copy_state(const std::shared_ptr<automata>& copy_auto){
 
 
 void auto_state::replace_eps_trans(const ptr_state_vector& replace, int eps_index){
-    if (eps_index == this->transitions.size()-1){
+    if (eps_index == this->transitions.size()-1){       // remove eps transitions
         this->transitions.pop_back();
     }
     else{
@@ -192,7 +192,7 @@ void auto_state::replace_eps_trans(const ptr_state_vector& replace, int eps_inde
             if (i == eps_index or state->transitions[i] == nullptr){
                 continue;
             }
-            this->add_transition_row(i, *state->transitions[i]);
+            this->add_transition_row(i, *state->transitions[i]);        // add transition rows from replace
         }
     }
 }
@@ -212,9 +212,9 @@ void auto_state::get_pow_trans(std::vector<ptr_state_vector>& new_trans, std::ve
 
 void auto_state::set_power_state(std::vector <ptr_state_vector>& new_trans){
     for (int i = 0; i < new_trans.size(); i++){
-        auto smallest_state = get_smallest_state(new_trans[i]);
+        auto smallest_state = get_smallest_state(new_trans[i]);     // find smallest state
         this->transitions[i]->clear();
-        this->transitions[i]->push_back(smallest_state);
+        this->transitions[i]->push_back(smallest_state);            // create a single transition from DFA
     }
 }
 
@@ -226,32 +226,31 @@ void auto_state::check_simul_trans(const std::vector <ptr_state_vector>& help_ta
         ptr_state_vector new_trans;
         for (const auto& state: *row){
             if (help_table.size() < state->get_value()){
-                std::cerr << "Nieco je blbo\n";
                 exit(-1);
             }
             if (help_table[state->get_value()].empty()){
-                std::cerr << "Heh?\n";
                 exit(-1);
             }
             new_trans.push_back(*help_table[state->get_value()].begin());
+            // new transitions to smallest state in the help_table
         }
         row->clear();
-        row->insert(row->begin(), new_trans.begin(), new_trans.end());
+        row->insert(row->begin(), new_trans.begin(), new_trans.end());      // add the transition row
     }
 }
 
 bool auto_state::not_under_simulate(const std::shared_ptr <auto_state>& second){
-    if (this->transitions.size() < second->transitions.size()){
+    if (this->transitions.size() < second->transitions.size()){     // different transitions
         return true;
     }
 
     for (int i = 0; i < this->transitions.size(); i++){
-        if (i >= second->transitions.size()){
+        if (i >= second->transitions.size()){       // checked all trans
             break;
         }
 
         if (this->transitions[i] == nullptr && second->transitions[i] != nullptr){
-            return true;
+            return true;        //cannot simulate
         }
     }
     return false;
@@ -275,14 +274,15 @@ void auto_state::change_coverable(ptr_state_vector& covering_ptr, const std::sha
             continue;
         }
         auto search = std::find((*transitions[i]).begin(), (*transitions[i]).end(), change);
-        if (search == transitions[i]->end()){
+        if (search == transitions[i]->end()){       // doesn't contain the state that is being retransitioned
             continue;
         }
         else{
+            //change the transition to be the last one in the vector and remove
             (*transitions[i])[search-transitions[i]->begin()] = (*transitions[i])[transitions[i]->size()-1];
             transitions[i]->pop_back();
 
-            this->add_transition_row(i, covering_ptr);
+            this->add_transition_row(i, covering_ptr);      // add transitions to covering vector
         }
     }
 }
@@ -374,7 +374,7 @@ automata::~automata() {
 }
 
 bool automata::add_state(const std::string& state_value){
-    if (this->dict.state_exists(state_value)){
+    if (this->dict.state_exists(state_value)){      // state already exists
         return false;
     }
 
@@ -387,7 +387,7 @@ bool automata::add_state(const std::string& state_value){
     this->state_table[index] = new_state;
 
 
-    if (state_value == DEAD){
+    if (state_value == DEAD){       // add transitions to dead state
         for (int i = 0 ; i < this->alphabet; i++){
             new_state->add_transition(i, new_state);
         }
@@ -564,7 +564,6 @@ int automata::get_next_state(const int& symbol, const int& state){
         auto next = this->state_table[state]->get_next(symbol);
 
         if (next == nullptr){
-            //std::cerr << "There isn't any next state in get_next_state" << std::endl;
             return -1;
         }
         return next->get_value();

@@ -1,45 +1,48 @@
-//
-// Created by vmvev on 11/7/2022.
-//
+/**
+* Project name: Effective reduction of Finite Automata
+* Author: Veronika Molnárová
+* Date: 06.05.2023
+* Subject: Bachelor's thesis - 1st part
+*/
 
 #include "auto_dictionary.h"
 
 
 bool auto_dictionary::smooth_vector_state(unsigned int& old, unsigned int& change){
     std::string end_elem;
-    while(end_elem.empty()){
-        end_elem = _index_name_state.back();   // take last state in the vector
-        _index_name_state.pop_back();
+    while(end_elem.empty()){        // take last state in the vector
+        end_elem = _index_name_state.back();
+        _index_name_state.pop_back();       // will pop every empty cell until an element is found
         max_index--;
     }
-    old = _index_name_state.size();
+    old = _index_name_state.size();     // the index of the found last element
 
     do{
-        if (free_index.empty()){
+        if (free_index.empty()){        // no more free indices, add the staate back
             _index_name_state.push_back(end_elem);
             max_index++;
-            return false;
+            return false;           // the vector is smooth
         }
 
         change = free_index.back();                 // take a free index from vector
         free_index.pop_back();
-    } while (change >= old);
+    } while (change >= old);        // the free index cannot be higher than the old index
 
     _index_name_state[change] = end_elem;       // move last element to free index
     _name_index_state[end_elem] = change;       // change its index in the map
 
-    return true;
+    return true;        // a change in the vector happened
 }
 
 unsigned int auto_dictionary::add_state(const std::string& name) {
-    if (free_index.empty()) {                   // no free indexes
-        _name_index_state[name] = max_index;
+    if (free_index.empty()) {                   // no free indices
+        _name_index_state[name] = max_index;        // give the highest new index
         _index_name_state.push_back(name);
         max_index++;
-        return max_index - 1;
+        return max_index - 1;       // return the given index
     }
 
-    unsigned int new_index = free_index.back();
+    unsigned int new_index = free_index.back();     // free indices
     free_index.pop_back();
     _name_index_state[name] = new_index;
     _index_name_state[new_index] = name;
@@ -72,8 +75,6 @@ std::string auto_dictionary::get_state_name(const unsigned int index){
         return _index_name_state[index];
     }
 
-    std::cout << max_index << std::endl;
-    //this->print_vec();
     std::cerr << "Indexing out of bounds" << std::endl;
     exit(-1);
 }
@@ -99,11 +100,11 @@ bool auto_dictionary::state_exists(int index){
 void auto_dictionary::remove_state(const std::string& name){
     unsigned int index = get_state_index(name);
     _name_index_state.erase(name);
-    if (index == max_index-1){
+    if (index == max_index-1){      // the last state
         _index_name_state.pop_back();
         max_index--;
     }
-    else{
+    else{                           // set the cell empty and store the free index
         _index_name_state[index] = "";
         free_index.push_back(index);
     }
@@ -112,11 +113,11 @@ void auto_dictionary::remove_state(const std::string& name){
 void auto_dictionary::remove_state(const unsigned int& index){
     std::string name = get_state_name(index);
     _name_index_state.erase(name);
-    if (index == max_index-1){
+    if (index == max_index-1){      // the last state
         _index_name_state.pop_back();
         max_index--;
     }
-    else{
+    else{                           // set the cell empty and store the free index
         _index_name_state[index] = "";
         free_index.push_back(index);
     }
@@ -156,14 +157,14 @@ bool auto_dictionary::alpha_exists(const std::string& name){
     return true;
 }
 
-void auto_dictionary::remove_alpha(const std::string& name){     //not expecting high removing of symbols
+// not expecting high removal of symbols
+void auto_dictionary::remove_alpha(const std::string& name){
     unsigned int index = get_alpha_index(name);
-    std::cout << this->_name_index_alpha.erase(name) << std::endl;
 
-    if (index == this->_index_name_alpha.size()-1){
+    if (index == this->_index_name_alpha.size()-1){     // last symbol
         this->_index_name_alpha.pop_back();
     }
-    else{
+    else{       // remove the symbol and swap it to the last element in the vector
         auto last_elem = this->_index_name_alpha.back();
         this->_index_name_alpha.pop_back();
         this->_index_name_alpha[index] = last_elem;
@@ -171,12 +172,14 @@ void auto_dictionary::remove_alpha(const std::string& name){     //not expecting
     }
 }
 
-void auto_dictionary::remove_alpha(unsigned int index) {     //not expecting high removing of symbols
+//not expecting high removing of symbols
+void auto_dictionary::remove_alpha(unsigned int index) {
     std::string name = get_alpha_name(index);
     _name_index_alpha.erase(name);
-    if (index == max_index - 1) {
+    if (index == max_index - 1) {       // last symbol
         _index_name_alpha.pop_back();
-    } else {
+    }
+    else{       // remove the symbol and swap it to the last element in the vector
         auto last_elem = this->_index_name_alpha.back();
         _index_name_alpha.pop_back();
         _index_name_alpha[index] = last_elem;

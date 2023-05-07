@@ -36,6 +36,11 @@ public:
     automata_stats(int states, int symbols);
 
     /***
+     * Constructor - creates an empty object
+     */
+    automata_stats();
+
+    /***
      * Getter of state_num
      * @return  the number of states
      */
@@ -104,6 +109,7 @@ public:
      * Prints the accepted and rejected words in the command line in a correct format for further processing
      *  Symbols represented by numbers are separated by space, words are separated by commas,
      *  accept words are separated by semicolon from reject states
+     *  @warning the words are removed after printing, destructive function
      */
     void print_words();
 };

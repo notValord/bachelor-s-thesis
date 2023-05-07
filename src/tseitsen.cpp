@@ -1,3 +1,9 @@
+/**
+* Project name: Effective reduction of Finite Automata
+* Author: Veronika Molnárová
+* Date: 06.05.2023
+* Subject: Bachelor's thesis - 2st part
+*/
 #include "tseitsen.h"
 
 void work_and_not_chain(std::queue <int>& and_chain, unsigned int max_index){

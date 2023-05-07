@@ -12,6 +12,10 @@ automata_stats::automata_stats(int states, int symbols) {
     this->alpha_num = symbols;
 }
 
+automata_stats::automata_stats() {
+    ;
+}
+
 unsigned int automata_stats::get_states() const{
     return this->state_num;
 }

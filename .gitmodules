@@ -1,0 +1,3 @@
+[submodule "solvers/qute"]
+	path = solvers/qute
+	url = https://github.com/fslivovsky/qute
