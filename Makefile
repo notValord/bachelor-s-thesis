@@ -24,7 +24,7 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJECTS) $(BUILDDIR)/$(TARGET)
+	rm -f $(OBJECTS)
 
 .PHONY: all clean
 

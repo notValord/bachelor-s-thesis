@@ -1,0 +1,449 @@
+%==============================================================================
+% Tento soubor použijte jako základ
+% This file should be used as a base for the thesis
+% Autoři / Authors: 2008 Michal Bidlo, 2022 Jaroslav Dytrych
+% Kontakt pro dotazy a připomínky: sablona@fit.vutbr.cz
+% Contact for questions and comments: sablona@fit.vutbr.cz
+%==============================================================================
+% kódování: UTF-8 (zmena prikazem iconv, recode nebo cstocs)
+% encoding: UTF-8 (you can change it by command iconv, recode or cstocs)
+%------------------------------------------------------------------------------
+% zpracování / processing: make, make pdf, make clean
+%==============================================================================
+% Soubory, které je nutné upravit nebo smazat: / Files which have to be edited or deleted:
+%   projekt-20-literatura-bibliography.bib - literatura / bibliography
+%   projekt-01-kapitoly-chapters.tex - obsah práce / the thesis content
+%   projekt-01-kapitoly-chapters-en.tex - obsah práce v angličtině / the thesis content in English
+%   projekt-30-prilohy-appendices.tex - přílohy / appendices
+%   projekt-30-prilohy-appendices-en.tex - přílohy v angličtině / appendices in English
+%==============================================================================
+%\documentclass[english]{fitthesis} % bez zadání - pro začátek práce, aby nebyl problém s překladem
+%\documentclass[english]{fitthesis} % without assignment - for the work start to avoid compilation problem
+%\documentclass[zadani]{fitthesis} % odevzdani do IS VUT a/nebo tisk s barevnými odkazy - odkazy jsou barevné
+\documentclass[english,zadani]{fitthesis} % for submission to the IS VUT and/or print with color links - links are color
+%\documentclass[zadani,print]{fitthesis} % pro černobílý tisk - odkazy jsou černé
+%\documentclass[english,zadani,print]{fitthesis} % for the black and white print - links are black
+%\documentclass[zadani,cprint]{fitthesis} % pro barevný tisk - odkazy jsou černé, znak VUT barevný
+%\documentclass[english,zadani,cprint]{fitthesis} % for the print - links are black, logo is color
+% * Je-li práce psaná v anglickém jazyce, je zapotřebí u třídy použít 
+%   parametr english následovně:
+%   If thesis is written in English, it is necessary to use 
+%   parameter english as follows:
+%      \documentclass[english]{fitthesis}
+% * Je-li práce psaná ve slovenském jazyce, je zapotřebí u třídy použít 
+%   parametr slovak následovně:
+%   If the work is written in the Slovak language, it is necessary 
+%   to use parameter slovak as follows:
+%      \documentclass[slovak]{fitthesis}
+% * Je-li práce psaná v anglickém jazyce se slovenským abstraktem apod., 
+%   je zapotřebí u třídy použít parametry english a enslovak následovně:
+%   If the work is written in English with the Slovak abstract, etc., 
+%   it is necessary to use parameters english and enslovak as follows:
+%\documentclass[english,enslovak]{fitthesis}
+
+% Základní balíčky jsou dole v souboru šablony fitthesis.cls
+% Basic packages are at the bottom of template file fitthesis.cls
+% zde můžeme vložit vlastní balíčky / you can place own packages here
+
+
+% Pro seznam zkratek lze využít balíček Glossaries - nutno odkomentovat i níže a při kompilaci z konzoly i v Makefile (plnou verzi pro Perl, nebo lite)
+% The Glossaries package can be used for the list of abbreviations - it is necessary to uncomment also below. When compiling from the console also in the Makefile (full version for Perl or lite)
+%\usepackage{glossaries}
+%\usepackage{glossary-superragged}
+%\makeglossaries 
+
+% Nastavení cesty k obrázkům
+% Setting of a path to the pictures
+%\graphicspath{{obrazky-figures/}{./obrazky-figures/}}
+%\graphicspath{{obrazky-figures/}{../obrazky-figures/}}
+
+%---rm---------------
+\renewcommand{\rmdefault}{lmr}%zavede Latin Modern Roman jako rm / set Latin Modern Roman as rm
+%---sf---------------
+\renewcommand{\sfdefault}{qhv}%zavede TeX Gyre Heros jako sf
+%---tt------------
+\renewcommand{\ttdefault}{lmtt}% zavede Latin Modern tt jako tt
+
+% vypne funkci šablony, která automaticky nahrazuje uvozovky,
+% aby nebyly prováděny nevhodné náhrady v popisech API apod.
+% disables function of the template which replaces quotation marks
+% to avoid unnecessary replacements in the API descriptions etc.
+\csdoublequotesoff
+
+\usepackage[super]{nth}
+\usepackage{xurl}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[T1]{fontenc}
+
+\makeatletter
+% This is the vertical rule that is inserted
+\def\therule{\makebox[\algorithmicindent][l]{\hspace*{.5em}\vrule height 0\baselineskip depth 0\baselineskip}}%
+
+\newtoks\therules% Contains rules
+\therules={}% Start with empty token list
+\def\appendto#1#2{\expandafter#1\expandafter{\the#1#2}}% Append to token list
+\def\gobblefirst#1{% Remove (first) from token list
+  #1\expandafter\expandafter\expandafter{\expandafter\@gobble\the#1}}%
+\def\LState{\State\unskip\the\therules}% New line-state
+\def\pushindent{\appendto\therules\therule}%
+\def\popindent{\gobblefirst\therules}%
+\def\printindent{\unskip\the\therules}%
+\def\printandpush{\printindent\pushindent}%
+\def\popandprint{\popindent\printindent}%
+\def\pop{\popindent}%
+
+%      ***      DECLARED LOOPS      ***
+% (from algpseudocode.sty)
+\algdef{SxnE}[WHILE]{While}{EndWhile}[1]
+  {\printandpush\algorithmicwhile\ #1\ \algorithmicdo}
+\algdef{SxnE}[FOR]{For}{EndFor}[1]
+  {\printandpush\algorithmicfor\ #1\ \algorithmicdo}
+\algdef{SxnE}[FOR]{ForAll}{EndFor}[1]
+  {\printandpush\algorithmicforall\ #1\ \algorithmicdo}%
+\algdef{SE}[LOOP]{Loop}{EndLoop}
+  {\printandpush\algorithmicloop}
+  {\popandprint\algorithmicend\ \algorithmicloop}%
+\algdef{SE}[REPEAT]{Repeat}{Until}
+  {\printandpush\algorithmicrepeat}[1]
+  {\popandprint\algorithmicuntil\ #1}%
+\algdef{SxnE}[IF]{If}{EndIf}[1]
+  {\printandpush\algorithmicif\ #1\ \algorithmicthen}
+  %
+\algdef{C}[IF]{IF}{ElsIf}[1]
+  {\popandprint\pushindent\algorithmicelse\ \algorithmicif\ #1\ \algorithmicthen}%
+\algdef{Ce}[ELSE]{IF}{Else}{EndIf}
+  {\popandprint\pushindent\algorithmicelse}%
+\algdef{SE}[PROCEDURE]{Procedure}{EndProcedure}[2]
+   {\printandpush\algorithmicprocedure\ \textproc{#1}\ifthenelse{\equal{#2}{}}{}{(#2)}}%
+   {\popandprint\algorithmicend\ \algorithmicprocedure}%
+\algdef{SE}[FUNCTION]{Function}{EndFunction}[2]
+   {\printandpush\algorithmicfunction\ \textproc{#1}\ifthenelse{\equal{#2}{}}{}{(#2)}}%
+   {\popandprint\algorithmicend\ \algorithmicfunction}%
+\makeatother
+
+% =======================================================================
+% balíček "hyperref" vytváří klikací odkazy v pdf, pokud tedy použijeme pdflatex
+% problém je, že balíček hyperref musí být uveden jako poslední, takže nemůže
+% být v šabloně
+% "hyperref" package create clickable links in pdf if you are using pdflatex.
+% Problem is that this package have to be introduced as the last one so it 
+% can not be placed in the template file.
+\ifWis
+\ifx\pdfoutput\undefined % nejedeme pod pdflatexem / we are not using pdflatex
+\else
+  \usepackage{color}
+  \usepackage[unicode,colorlinks,hyperindex,plainpages=false,pdftex]{hyperref}
+  \definecolor{hrcolor-ref}{RGB}{223,52,30}
+  \definecolor{hrcolor-cite}{HTML}{2F8F00}
+  \definecolor{hrcolor-urls}{HTML}{092EAB}
+  %\newcommand\todo[1]{\textcolor{red}{#1}}
+
+  \hypersetup{
+	linkcolor=hrcolor-ref,
+	citecolor=hrcolor-cite,
+	filecolor=magenta,
+	urlcolor=hrcolor-urls
+  }
+  \def\pdfBorderAttrs{/Border [0 0 0] }  % bez okrajů kolem odkazů / without margins around links
+  \pdfcompresslevel=9
+\fi
+\else % pro tisk budou odkazy, na které se dá klikat, černé / for the print clickable links will be black
+\ifx\pdfoutput\undefined % nejedeme pod pdflatexem / we are not using pdflatex
+\else
+  \usepackage{color}
+  \usepackage[unicode,colorlinks,hyperindex,plainpages=false,pdftex,urlcolor=black,linkcolor=black,citecolor=black]{hyperref}
+  \definecolor{links}{rgb}{0,0,0}
+  \definecolor{anchors}{rgb}{0,0,0}
+  \def\AnchorColor{anchors}
+  \def\LinkColor{links}
+  \def\pdfBorderAttrs{/Border [0 0 0] } % bez okrajů kolem odkazů / without margins around links
+  \pdfcompresslevel=9
+\fi
+\fi
+% Řešení problému, kdy klikací odkazy na obrázky vedou za obrázek
+% This solves the problems with links which leads after the picture
+\usepackage[all]{hypcap}
+
+% Informace o práci/projektu / Information about the thesis
+%---------------------------------------------------------------------------
+\projectinfo{
+  %Prace / Thesis
+  project={BP},            %typ práce BP/SP/DP/DR  / thesis type (SP = term project)
+  year={2023},             % rok odevzdání / year of submission
+  date=\today,             % datum odevzdání / submission date
+  %Nazev prace / thesis title
+  title.cs={Efektivní redukce konečných automatů},  % název práce v češtině či slovenštině (dle zadání) / thesis title in czech language (according to assignment)
+  title.en={Efficient Reduction of Finite Automata}, % název práce v angličtině / thesis title in english
+  %title.length={14.5cm}, % nastavení délky bloku s titulkem pro úpravu zalomení řádku (lze definovat zde nebo níže) / setting the length of a block with a thesis title for adjusting a line break (can be defined here or below)
+  %sectitle.length={14.5cm}, % nastavení délky bloku s druhým titulkem pro úpravu zalomení řádku (lze definovat zde nebo níže) / setting the length of a block with a second thesis title for adjusting a line break (can be defined here or below)
+  %dectitle.length={14.5cm}, % nastavení délky bloku s titulkem nad prohlášením pro úpravu zalomení řádku (lze definovat zde nebo níže) / setting the length of a block with a thesis title above declaration for adjusting a line break (can be defined here or below)
+  %Autor / Author
+  author.name={Veronika},   % jméno autora / author name
+  author.surname={Molnárová},   % příjmení autora / author surname 
+  %author.title.p={Bc.}, % titul před jménem (nepovinné) / title before the name (optional)
+  %author.title.a={Ph.D.}, % titul za jménem (nepovinné) / title after the name (optional)
+  %Ustav / Department
+  department={UITS}, % doplňte příslušnou zkratku dle ústavu na zadání: UPSY/UIFS/UITS/UPGM / fill in appropriate abbreviation of the department according to assignment: UPSY/UIFS/UITS/UPGM
+  % Školitel / supervisor
+  supervisor.name={Ondřej},   % jméno školitele / supervisor name 
+  supervisor.surname={Lengál},   % příjmení školitele / supervisor surname
+  supervisor.title.p={Ing.},   %titul před jménem (nepovinné) / title before the name (optional)
+  supervisor.title.a={Ph.D.},    %titul za jménem (nepovinné) / title after the name (optional)
+  % Klíčová slova / keywords
+  keywords.cs={konečné stavové automaty, redukcia automatov, minimálny deterministický automat, simulácia, reziduálny automat, SAT solver, QBF solver}, % klíčová slova v českém či slovenském jazyce / keywords in czech or slovak language
+  keywords.en={finite state automata, automata reduction, minimal deterministic automata, simulation, residual automata, SAT solver, QBF solver}, % klíčová slova v anglickém jazyce / keywords in english
+  %keywords.en={Here, individual keywords separated by commas will be written in English.},
+  % Abstrakt / Abstract
+  abstract.cs={Konečný stavový automat je matematický model popisujúci stroj vykonávajúci výpočet na zadanom vstupe cez postupnosť stavov. Za posledné storočie si tento koncept našiel využitie v rôznych odvetviach informatiky od správania postáv vo videohrách po kompilátory. Pokým automat popisuje jeden jazyk, ten môže byť reprezentovaný nekonečným množstvom rôznych automatov. Keďže veľkosť týchto automatov sa líši, pre zaistenie čo najefektívnejšej práce chceme nájsť ten najmenší z nich.
+  
+  V tejto práci sa pozrieme na päť rôznych typov redukcie automatov. Najskôr sa budeme zaoberať troma známymi redukčnými algoritmami, menovite to bude minimalizácia deterministického automatu, redukcia pomocou relácie simuláciu a redukcia pomocou prevodu na kanonický reziduálny automat. Tieto redukcie boli implementované v jazyku C++ a otestované na skúšobnom vzorku automatov pre porovnanie výsledkov jednotlivých redukcií.
+  
+  Posledne sme sa pozreli na možnosť redukovať konečný stavový automat pomocou SAT a QBF solverov. Vytvorili sme množinu pravidiel pre každý solver pre tvorbu klauzule v konjunktnej normálnej forme, ktorá dokáže jednoznačne reprezentovať automat v Booleovej algebre. S využitím tohto faktu sme vytvorili nový spôsob redukcie nedeterministického automatu.}, % abstrakt v českém či slovenském jazyce / abstract in czech or slovak language
+  abstract.en={A finite state automaton is a mathematical model used to describe a machine that performs a computation on the given input over a series of states. In the last century, it has found many uses in different fields of information technology, from video game character behavior to compilers. While each automaton denotes its language, one language can be represented by an infinite number of different automata. As these automata vary in size, to ensure the most efficient work with them, we want to find the smallest one possible.
+  
+  In this thesis, we are going to look at five different types of automata reductions. Firstly, we will talk about three known
+ reduction algorithms, which are the minimization of deterministic automata, the reduction based on a relation of simulation, and the reduction by transformation into a canonical residual automaton. These reductions were implemented in C++ and tested on a sample set of automata to compare their results.
+  
+  Lastly, we looked at the possibility of reducing finite state automata using Boolean satisfiability problem (SAT) and quantified Boolean formula (QBF) solvers. We are presenting a set of rules for each solver for generating a clause in conjunctive normal form (CNF), which can precisely represent the given automaton in Boolean algebra. We used this fact to create a new method of nondeterministic automata reduction.}, 
+  % abstrakt v anglickém jazyce / abstract in english
+  %abstract.en={An abstract of the work in English will be written in this paragraph.},
+  % Prohlášení (u anglicky psané práce anglicky, u slovensky psané práce slovensky; u projektové praxe lze zakomentovat) / Declaration (for thesis in english should be in english; for project practice can be commented out)
+  %declaration={Prohlašuji, že jsem tuto bakalářskou práci vypracoval samostatně pod vedením pana X...
+%Další informace mi poskytli...
+%Uvedl jsem všechny literární prameny, publikace a další zdroje, ze kterých jsem čerpal.},
+  declaration={I hereby declare that this Bachelor's thesis was prepared as an original work by the author under the supervision of Mr.~Ing.~Ondřej Lengál, Ph.D.
+ I have listed all the literary sources, publications and other sources, which were used during the preparation of this thesis.},
+  % Poděkování (nepovinné, nejlépe v jazyce práce; nechcete-li, zakomentujte pro skrytí nadpisu) / Acknowledgement (optional, ideally in the language of the thesis; comment out for hiding including heading)
+  %acknowledgment={V této sekci je možno uvést poděkování vedoucímu práce %a těm, kteří poskytli odbornou pomoc
+%(externí zadavatel, konzultant apod.).},
+  acknowledgment={I would like to thank my supervisor Mr.~Ing.~Ondřej Lengál, Ph.D for his guidance, advice and patience throughout the whole year.},
+  % Rozšířený abstrakt (cca 3 normostrany) - lze definovat zde nebo níže / Extended abstract (approximately 3 standard pages) - can be defined here or below
+  extendedabstract={Koncept konečného stavového automatu bol prvýkrát predstavený dvoma neurofyziológmi McCullochom a Walterom Pittsom v~roku 1943 a odvtedy bol tento koncept ďalej rozširovaný až po~konečné stavové automaty (KSA), ktoré poznáme dnes \cite{Wolfram2002, Standford2004}.\linebreak Uplatnenie KSA nachádzame v~rôznych oblastiach informatiky od~verifikácie a validácie až po~rozoznávanie ľudskej reči, dokazujúc dôležitosť tejto dátovej štruktúry. Hlavná výhoda KSA pozostáva z~malej pamäte, ktorú potrebujú pre ich~prevádzku. Keďže ich~akcie sú závislé len na stave, v~ktorom sa aktuálne nachádzajú, a na~vstupnom symbole, toto sú jediné informácie, ktoré si potrebujú uchovávať počas ich práce. To isté nemôžeme povedať o~samotnej dátovej štruktúre KSA. V~skutočných prípadoch využitia konečných stavových automatov často pokrývajú obrovský stavový priestor s~tisíckami stavov a prechodov. Práca s~takýmito rozsiahlymi štruktúrami je náročná a preto vznikla myšlienka redukcie veľkosti KSA.
+  
+ Automat definuje jazyk ktorý prijíma, ale jeden jazyk môže byť definovaný automatmi s~rôznymi veľkosťami. Hľadáme teda automat s~čo najmenším počtom stavov, ktorý definuje rovnaký jazyk ako zadaný automat. Táto myšlienka reprezentuje proces redukcie veľkosti automatov. Všeobecne môžeme rozprávať o~dvoch druhoch redukcie KSA, a~to o~redukcií deterministických automatov (DKA) a redukcií nedeterministických automatov (NKA).
+  
+  Pre~deterministické automaty platí, že pre~každý stav automatu existuje najviac jeden prechod pre~symbol abecedy. Táto vlastnosť obmedzuje DKA v~ich zložitosti. Keďže DKA majú presne dané, aký stav nasleduje z~aktuálneho po~prijatí vstupného symbolu, sú tieto automaty vhodné na~algoritmickú prácu. Pre~DKA je možné nájsť minimálny ekvivalentný automat pomocou viacerých algoritmov. Najviac známy a využívaný je Hopcroftov algoritmus pre~jeho lineárne logaritmickú časovú zložitosť. Pracuje na~základe rozdeľovania stavov automatu do~uzáverov definujúcich rovnaký jazyk. Tieto uzávery sa~delia podľa správania stavu pre~vstupné symboly vzhľadom k~existujúcim uzáverom. Ak už žiadne delenie nie je možné, stavy v~jednej skupine sú nahradené jedným, čím vzniká redukcia. Brzozowského algoritmus je iný algoritmus pre~nájdenie minimálneho DKA, ktorý funguje na~koncepte spätnej a doprednej determinizácie. Aj keď je časová zložitosť Brzozowského algoritmu exponenciálna, stále môže dosahovať kvalitné výsledky záležiac na~vstupnom automate. Oba tieto algoritmy pracujú s~deterministickými automatmi, či už ako očakávaný automat na~vstupe, alebo je automat determinizovaný počas redukcie. 
+
+   Často ale pracujeme s~nedeterministickými automatmi, ktoré je potrebné pre tieto algoritmy determinizovať. NKA môžu mať viacero prechodov pre~rovnaký symbol abecedy z~jedného stavu, a preto dokážu jazyk popisovať kompaktnejšie a častokrát môžu byť až exponenciálne menšie. Minimálny DKA môže byť preto stále väčší ako pôvodný NKA. \linebreak Z~tohto dôvodu sa zaoberáme myšlienkou priamej redukcie NKA, ktorá je výpočtovo náročná a zaradená ako PSPACE úplný problém~\cite{Jiang93}. Pozreli sme sa na~dve redukcie NKA, a to na~redukciu pomocou relácie simulácie a redukciu pomocou transformácie na~kanonický reziduálny automat.
+  
+  Simulácia je reflexívna a tranzitívna relácia na stavoch automatu. Po výpočte relácie simulácie pre~daný automat, môžu byť stavy vo~vzájomnej relácií zlúčené a reprezentované ako jeden. Pri tvorbe kanonického reziduálneho automatu opäť prebieha spätná a dopredná determinizácia ako pri~Brzozowského algoritme, ale tento proces je ešte obohatený o~odstraňovanie pokrytých stavov automatu. Týmto spôsobom je výsledný automat \linebreak v~najhoršom prípade rovnako veľký ako minimálny DKA, pričom často odstraňovanie pokrytých stavov v~automatu vytvára nedeterministický automat s~menším počtom stavov.
+
+  Okrem existujúcich algoritmov sme sa pozreli aj na nové možnosti redukcie NKA. V~článku \textit{Liveness of Randomised Parameterised Systems under Arbitrary Schedulers}~\cite{Lin2016} bol predstavený iný pohľad na~prácu s~konečnými automatmi s~využitím SAT solvrov. SAT solvre sú výkonne nástroje pre~riešenie problému či existuje konfigurácia premenných pre~formulu v konjunktívnej normálnej forme (KNF) tak, aby bola splniteľná. Vytvorili sme predpis, podľa ktorého dokážeme reprezentovať automat s~daným počtom stavov a jazykom ako KNF formulu v Booleovej algebre. Jazyk automatu definujeme podľa príkladov slov, ktoré pôvodný automat prijíma a odmieta. Následne môžeme tieto množiny upravovať dovtedy, pokým nám nevznikne automat s~rovnakým jazykom ako pôvodný automat. Pre definíciu DKA vytvárame formulu pomocou štyroch podmienok, pričom každá zabezpečuje jednu z~nasledujúcich vlastností automatu: determinizmus, úplnosť, prijímanie\linebreak slov a odmietanie slov. Pri opomenutí podmienok pre~determinizmus a úplnosť výsledného automatu dokážeme rovnakým spôsobom definovať aj NKA. Následne sme túto myšlienku rozšírili aj na~QBF solvre, ktoré dokážu na~svojom vstupe prijímať kvantifikované premenné. Pomocou  týchto premenných sme dokázali zmenšiť počet klauzúl potrebných pre~reprezentáciu NKA ako formulu v~KNF. 
+  
+  Ako výsledok práce bol implementovaný program schopný vykonania všetkých\linebreak spomenutých redukcii, ktorý bol následne optimalizovaný pre čo najlepšiu výkonnosť.\linebreak Existujúce algoritmy redukcii (minimálny DKA, redukcia pomocou relácie simulácie a redukcia pomocou reziduálnych automatov) boli otestované na~vzorke 4\ 042 NKA pre~porovnanie ich výkonnosti v~podobe dosiahnutej redukcie výsledného automatu ako aj porovnanie času potrebného pre~túto redukciu. Najlepšie výsledky dosahovala redukcia pomocou kanonického reziduálneho automatu s~priemernou redukciou okolo 61.20\%. Naša implementácia trvala okolo jednej sekundy pre automaty s~veľkosťou 4\ 000 stavov.
+  
+  Redukcia s využitím SAT a QBF solvrov bola otestovaná na~sade benchmark automaton pre~ohodnotenie možností tohto typu redukcie. Dokázali sme, že takáto redukcia umožnuje nájdenie minimálneho DKA ako aj minimálneho NKA, ale využitie tejto redukcie pre~automaty s~väčším počtom stavov je zatiaľ diskutabilné. Pri~použití SAT solvrov narážame na~problém s~exponenciálnym počtom klauzúl pre~definíciu vstupných slov. Tento fakt sme očakávali, a~preto sme sa pokúsili využiť QBF solvre, pre ktoré je počet klauzúl pre~jednotlivé slová len kvadratický. Bohužiaľ, po~praktickom otestovaní nie je výkonnosť QBF solvrov dostačujúca, kedy už riešenie formule s~4\ 000 klauzulami dokáže zabrať minúty. Všeobecne boli tieto redukcie možné vykonať len na~malých automatoch. 
+  
+ Pre~budúcu prácu by boli možné ďalšie optimalizácie spomenutých algoritmov. V~prípade redukcie pomocou SAT a QBF solvrov by bolo vhodné sa zamerať na~heuristiky výberu slov pre~lepšiu definíciu jazyku automatu a zlepšenie výkonnosti redukcie. U~QBF solvrov by bolo možné využitie \textit{predprocesorov} alebo iných nástrojov pre upravenie vstupnej formule do formy, ktorá by viac vyhovovala solvru.},
+  %extabstract.odd={true}, % Začít rozšířený abstrakt na liché stránce? / Should extended abstract start on the odd page?
+  %faculty={FIT}, % FIT/FEKT/FSI/FA/FCH/FP/FAST/FAVU/USI/DEF
+  faculty.cs={Fakulta informačních technologií}, % Fakulta v češtině - pro využití této položky výše zvolte fakultu DEF / Faculty in Czech - for use of this entry select DEF above
+  faculty.en={Faculty of Information Technology}, % Fakulta v angličtině - pro využití této položky výše zvolte fakultu DEF / Faculty in English - for use of this entry select DEF above
+  department.cs={Ústav matematiky}, % Ústav v češtině - pro využití této položky výše zvolte ústav DEF nebo jej zakomentujte / Department in Czech - for use of this entry select DEF above or comment it out
+  department.en={Institute of Mathematics} % Ústav v angličtině - pro využití této položky výše zvolte ústav DEF nebo jej zakomentujte / Department in English - for use of this entry select DEF above or comment it out
+}
+
+% Rozšířený abstrakt (cca 3 normostrany) - lze definovat zde nebo výše / Extended abstract (approximately 3 standard pages) - can be defined here or above
+%\extendedabstract{Do tohoto odstavce bude zapsán výtah (abstrakt) práce v českém (slovenském) jazyce.}
+% Začít rozšířený abstrakt na liché stránce? / Should extended abstract start on the odd page?
+%\extabstractodd{true}
+
+% nastavení délky bloku s titulkem pro úpravu zalomení řádku - lze definovat zde nebo výše / setting the length of a block with a thesis title for adjusting a line break - can be defined here or above
+%\titlelength{14.5cm}
+% nastavení délky bloku s druhým titulkem pro úpravu zalomení řádku - lze definovat zde nebo výše / setting the length of a block with a second thesis title for adjusting a line break - can be defined here or above
+%\sectitlelength{14.5cm}
+% nastavení délky bloku s titulkem nad prohlášením pro úpravu zalomení řádku - lze definovat zde nebo výše / setting the length of a block with a thesis title above declaration for adjusting a line break - can be defined here or above
+%\dectitlelength{14.5cm}
+
+% řeší první/poslední řádek odstavce na předchozí/následující stránce
+% solves first/last row of the paragraph on the previous/next page
+\clubpenalty=10000
+\widowpenalty=10000
+
+% checklist
+\newlist{checklist}{itemize}{1}
+\setlist[checklist]{label=$\square$}
+
+% Kompilace po částech (rychlejší, ale v náhledu nemusí být vše aktuální)
+% Compilation piecewise (faster, but not all parts in preview will be up-to-date)
+% Další informace viz / For more information see https://www.overleaf.com/learn/latex/Multi-file_LaTeX_projects
+% \usepackage{subfiles}
+
+% Nechcete-li, aby se u oboustranného tisku roztahovaly mezery pro zaplnění stránky, odkomentujte následující řádek / If you do not want enlarged spacing for filling of the pages in case of duplex printing, uncomment the following line
+% \raggedbottom
+
+\begin{document}
+  % Vysazeni titulnich stran / Typesetting of the title pages
+  % ----------------------------------------------
+  \maketitle
+  % Obsah
+  % ----------------------------------------------
+  \setlength{\parskip}{0pt}
+   \setcounter{tocdepth}{1}
+  {\hypersetup{hidelinks}\tableofcontents}
+  
+  % Seznam obrazku a tabulek (pokud prace obsahuje velke mnozstvi obrazku, tak se to hodi)
+  % List of figures and list of tables (if the thesis contains a lot of pictures, it is good)
+  %\ifczech
+  %  \renewcommand\listfigurename{Seznam obrázků}
+  %\fi
+  %\ifslovak
+  %  \renewcommand\listfigurename{Zoznam obrázkov}
+  %\fi
+  %{\hypersetup{hidelinks}\listoffigures}
+  
+  %\ifczech
+  %  \renewcommand\listtablename{Seznam tabulek}
+  %\fi
+  %\ifslovak
+  %  \renewcommand\listtablename{Zoznam tabuliek}
+  %\fi
+  % {\hypersetup{hidelinks}\listoftables}
+
+  % Seznam zkratek / List of abbreviations
+  %\ifczech
+  %  \renewcommand*\glossaryname{Seznam zkratek}%
+  %  \renewcommand*\entryname{Zkratka}
+  %  \renewcommand*\descriptionname{Význam}
+  %\fi
+  %\ifslovak
+  %  \renewcommand*\glossaryname{Zoznam skratiek}%
+  %  \renewcommand*\entryname{Skratka}
+  %  \renewcommand*\descriptionname{Význam}
+  %\fi
+  %\ifenglish
+  %  \renewcommand*\glossaryname{List of abbreviations}%
+  %  \renewcommand*\entryname{Abbreviation}
+  %  \renewcommand*\descriptionname{Meaning}
+  %\fi
+  % Definice zkratek - z textu se odkazují např. \Gls{TF–IDF}
+  % Definition of abbreviations - referred from the text e.g. \Gls{TF–IDF}
+  %\newglossaryentry{TF–IDF}
+  %{
+  %  name={TF–IDF},
+  %  description={Term Frequency-Inverse Document Frequency}
+  %}
+  % 
+  %\setglossarystyle{superragged}
+  %\printglossaries
+
+
+  \ifODSAZ
+    \setlength{\parskip}{0.5\bigskipamount}
+  \else
+    \setlength{\parskip}{0pt}
+  \fi
+
+  % vynechani stranky v oboustrannem rezimu
+  % Skip the page in the two-sided mode
+  \iftwoside
+    \cleardoublepage
+  \fi
+
+  % Text prace / Thesis text
+  % ----------------------------------------------
+  \ifenglish
+    \input{projekt-01-kapitoly-chapters-en}
+  \else
+    \input{projekt-01-kapitoly-chapters}
+  \fi
+  
+  % Kompilace po částech (viz výše, nutno odkomentovat a zakomentovat input výše)
+  % Compilation piecewise (see above, it is necessary to uncomment it and comment out input above)
+  %\subfile{chapters/projekt-01-uvod-introduction}
+  % ...
+  %\subfile{chapters/projekt-05-zaver-conclusion}
+
+  % Pouzita literatura / Bibliography
+  % ----------------------------------------------
+\ifslovak
+  \makeatletter
+  \def\@openbib@code{\addcontentsline{toc}{chapter}{Literatúra}}
+  \makeatother
+  \bibliographystyle{bib-styles/Pysny/skplain}
+\else
+  \ifczech
+    \makeatletter
+    \def\@openbib@code{\addcontentsline{toc}{chapter}{Literatura}}
+    \makeatother
+    \bibliographystyle{bib-styles/Pysny/czplain}
+  \else 
+    \makeatletter
+    \def\@openbib@code{\addcontentsline{toc}{chapter}{Bibliography}}
+    \makeatother
+    \bibliographystyle{bib-styles/Pysny/enplain}
+  %  \bibliographystyle{alpha}
+  \fi
+\fi
+  \begin{flushleft}
+  \bibliography{projekt-20-literatura-bibliography}
+  \end{flushleft}
+
+  % vynechani stranky v oboustrannem rezimu
+  % Skip the page in the two-sided mode
+  \iftwoside
+    \cleardoublepage
+  \fi
+
+  % Prilohy / Appendices
+  % ---------------------------------------------
+  \appendix
+\ifczech
+  \renewcommand{\appendixpagename}{Přílohy}
+  \renewcommand{\appendixtocname}{Přílohy}
+  \renewcommand{\appendixname}{Příloha}
+\fi
+\ifslovak
+  \renewcommand{\appendixpagename}{Prílohy}
+  \renewcommand{\appendixtocname}{Prílohy}
+  \renewcommand{\appendixname}{Príloha}
+\fi
+%  \appendixpage
+
+% vynechani stranky v oboustrannem rezimu
+% Skip the page in the two-sided mode
+%\iftwoside
+%  \cleardoublepage
+%\fi
+  
+\ifslovak
+%  \section*{Zoznam príloh}
+%  \addcontentsline{toc}{section}{Zoznam príloh}
+\else
+  \ifczech
+%    \section*{Seznam příloh}
+%    \addcontentsline{toc}{section}{Seznam příloh}
+  \else
+%    \section*{List of Appendices}
+%    \addcontentsline{toc}{section}{List of Appendices}
+  \fi
+\fi
+  \startcontents[chapters]
+  \setlength{\parskip}{0pt} 
+  % seznam příloh / list of appendices
+  % \printcontents[chapters]{l}{0}{\setcounter{tocdepth}{2}}
+  
+  \ifODSAZ
+    \setlength{\parskip}{0.5\bigskipamount}
+  \else
+    \setlength{\parskip}{0pt}
+  \fi
+  
+  % vynechani stranky v oboustrannem rezimu
+  \iftwoside
+    \cleardoublepage
+  \fi
+  
+  % Přílohy / Appendices
+  \ifenglish
+    \input{projekt-30-prilohy-appendices-en}
+  \else
+    \input{projekt-30-prilohy-appendices}
+  \fi
+  
+  % Kompilace po částech (viz výše, nutno odkomentovat)
+  % Compilation piecewise (see above, it is necessary to uncomment it)
+  %\subfile{projekt-30-prilohy-appendices}
+  
+\end{document}

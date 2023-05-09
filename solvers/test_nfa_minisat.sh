@@ -7,7 +7,7 @@ TIME_COMP=0
 TIME_INFO=0
 N=0
 ALPHA=0
-AUTO_VTF="../input_automata/test_auto/armcNFA_inclTest_7.vtf"
+AUTO_VTF="../input_automata/test_auto/armcNFA_inclTest_6.vtf"
 if [ $# -eq 1 ]
   then
     AUTO_VTF=$1
