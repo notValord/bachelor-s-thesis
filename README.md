@@ -2,7 +2,6 @@
 #### Author: Veronika Molnárová, xmolna08
 #### Project: Bachelor's thesis, 2022/2023
 ---
----
 ## Project description
 This project implements a program in C++ 20 with the main focus on the reduction of finite state automata. The application takes an input automaton in a `.vtf` file and tries to find its smaller equivalent that is after successful reduction saved into another `.vtf` file. The application implements the reduction by finding *minimal deterministic automaton* (DFA) by either *basic Hopcroft's algorithm* or *Brzozowski's algorithm* and direct reduction of non-deterministic automata (NFA), namely *reduction through a relation of simulation* and *reduction by transformation into canonical residual automaton*. On top of that, the application implements a new possibility of automata *reduction by utilizing SAT solvers* for finding the minimal DFA or minimal NFA and QBF solvers for finding the minimal NFA.
 
