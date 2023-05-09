@@ -1,6 +1,6 @@
 # Efficient Reduction of Finite Automata
 #### Author: Veronika Molnárová, xmolna08
-#### Project: Bachelor's thesis, 2022/20223
+#### Project: Bachelor's thesis, 2022/2023
 ---
 ---
 ## Project description
