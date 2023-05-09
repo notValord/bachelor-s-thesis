@@ -145,3 +145,10 @@ The contents of this repository include:
 - `thesis/` -- directory with the thesis about this project
 - `Makefile` -- used for the compilation of the program
 - `README` -- this documentation
+
+The links to the used solvers:
+- [MiniSat solver](http://minisat.se/)
+- [Kissat solver](https://github.com/arminbiere/kissat)
+- [CAQE solver](https://github.com/ltentrup/caqe)
+- [DepQBF solver](https://lonsing.github.io/depqbf/)
+- [qute solver](https://github.com/fslivovsky/qute)
